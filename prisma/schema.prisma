@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Producto {
+  id        String   @id @default(cuid())
+  nombre    String
+  precio    Float
+  stock     Int      @default(0)
+  categoria String
+  tamano    String
+  unidad    String
+  activo    Boolean  @default(true)
+  codigo    String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items     ItemVenta[]
+
+  @@map("productos")
+}
+
+model Transaccion {
+  id          String   @id @default(cuid())
+  codigoVenta String   @unique
+  total       Float
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+  items       ItemVenta[]
+
+  @@map("transacciones")
+}
+
+model ItemVenta {
+  id             String @id @default(cuid())
+  productoId     String
+  transaccionId  String
+  cantidad       Int
+  precioUnitario Float
+  subtotal       Float
+  producto       Producto    @relation(fields: [productoId], references: [id])
+  transaccion    Transaccion @relation(fields: [transaccionId], references: [id], onDelete: Cascade)
+
+  @@map("items_venta")
+}
