@@ -11,11 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VentasService = void 0;
 const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
+const ventas_repository_1 = require("./ventas.repository");
+const productos_repository_1 = require("../productos/productos.repository");
 let VentasService = class VentasService {
-    prisma;
-    constructor(prisma) {
-        this.prisma = prisma;
+    repository;
+    productosRepository;
+    constructor(repository, productosRepository) {
+        this.repository = repository;
+        this.productosRepository = productosRepository;
     }
     async getTransaccionesPorPeriodo(periodo = 'dia', desde, hasta) {
         const now = new Date();
@@ -49,45 +52,39 @@ let VentasService = class VentasService {
                 fechaInicio = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 fechaFin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         }
-        return this.prisma.transaccion.findMany({
-            where: { fecha: { gte: fechaInicio, lte: fechaFin } },
-            include: {
-                items: {
-                    include: { producto: true },
-                },
-            },
-            orderBy: { fecha: 'desc' },
-        });
+        return this.repository.findMany({ fecha: { gte: fechaInicio, lte: fechaFin } });
     }
     async registrarTransaccion(data) {
+        if (!data.items.length) {
+            throw new common_1.BadRequestException('La venta debe tener al menos un ítem');
+        }
+        for (const item of data.items) {
+            const producto = await this.productosRepository.findById(item.productoId);
+            if (!producto) {
+                throw new common_1.NotFoundException(`Producto ${item.productoId} no encontrado`);
+            }
+            if (producto.stock < item.cantidad) {
+                throw new common_1.BadRequestException(`Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, solicitado: ${item.cantidad}`);
+            }
+        }
         const codigoVenta = `VTA-${Date.now()}`;
         const total = data.items.reduce((sum, item) => sum + item.cantidad * item.precioUnitario, 0);
         const fecha = data.fecha ? new Date(data.fecha) : new Date();
-        const transaccion = await this.prisma.transaccion.create({
-            data: {
-                codigoVenta,
-                total,
-                fecha,
-                items: {
-                    create: data.items.map((item) => ({
-                        productoId: item.productoId,
-                        cantidad: item.cantidad,
-                        precioUnitario: item.precioUnitario,
-                        subtotal: item.cantidad * item.precioUnitario,
-                    })),
-                },
-            },
-            include: {
-                items: {
-                    include: { producto: true },
-                },
+        const transaccion = await this.repository.create({
+            codigoVenta,
+            total,
+            fecha,
+            items: {
+                create: data.items.map((item) => ({
+                    productoId: item.productoId,
+                    cantidad: item.cantidad,
+                    precioUnitario: item.precioUnitario,
+                    subtotal: item.cantidad * item.precioUnitario,
+                })),
             },
         });
         for (const item of data.items) {
-            await this.prisma.producto.update({
-                where: { id: item.productoId },
-                data: { stock: { decrement: item.cantidad } },
-            });
+            await this.repository.decrementStock(item.productoId, item.cantidad);
         }
         return transaccion;
     }
@@ -95,6 +92,7 @@ let VentasService = class VentasService {
 exports.VentasService = VentasService;
 exports.VentasService = VentasService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [ventas_repository_1.VentasRepository,
+        productos_repository_1.ProductosRepository])
 ], VentasService);
 //# sourceMappingURL=ventas.service.js.map

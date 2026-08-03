@@ -1,9 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { VentasRepository } from './ventas.repository';
+import { ProductosRepository } from '../productos/productos.repository';
+import type { CreateVentaDto } from './dto/ventas.dto';
 
 @Injectable()
 export class VentasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly repository: VentasRepository,
+    private readonly productosRepository: ProductosRepository,
+  ) {}
 
   async getTransaccionesPorPeriodo(
     periodo: string = 'dia',
@@ -43,21 +48,27 @@ export class VentasService {
         fechaFin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     }
 
-    return this.prisma.transaccion.findMany({
-      where: { fecha: { gte: fechaInicio, lte: fechaFin } },
-      include: {
-        items: {
-          include: { producto: true },
-        },
-      },
-      orderBy: { fecha: 'desc' },
-    });
+    return this.repository.findMany({ fecha: { gte: fechaInicio, lte: fechaFin } });
   }
 
-  async registrarTransaccion(data: {
-    items: { productoId: string; cantidad: number; precioUnitario: number }[];
-    fecha?: string | Date;
-  }) {
+  async registrarTransaccion(data: CreateVentaDto) {
+    if (!data.items.length) {
+      throw new BadRequestException('La venta debe tener al menos un ítem');
+    }
+
+    // Verificar que todos los productos existen y tienen stock suficiente
+    for (const item of data.items) {
+      const producto = await this.productosRepository.findById(item.productoId);
+      if (!producto) {
+        throw new NotFoundException(`Producto ${item.productoId} no encontrado`);
+      }
+      if (producto.stock < item.cantidad) {
+        throw new BadRequestException(
+          `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, solicitado: ${item.cantidad}`,
+        );
+      }
+    }
+
     const codigoVenta = `VTA-${Date.now()}`;
     const total = data.items.reduce(
       (sum, item) => sum + item.cantidad * item.precioUnitario,
@@ -65,33 +76,22 @@ export class VentasService {
     );
     const fecha = data.fecha ? new Date(data.fecha) : new Date();
 
-    const transaccion = await this.prisma.transaccion.create({
-      data: {
-        codigoVenta,
-        total,
-        fecha,
-        items: {
-          create: data.items.map((item) => ({
-            productoId: item.productoId,
-            cantidad: item.cantidad,
-            precioUnitario: item.precioUnitario,
-            subtotal: item.cantidad * item.precioUnitario,
-          })),
-        },
-      },
-      include: {
-        items: {
-          include: { producto: true },
-        },
+    const transaccion = await this.repository.create({
+      codigoVenta,
+      total,
+      fecha,
+      items: {
+        create: data.items.map((item) => ({
+          productoId: item.productoId,
+          cantidad: item.cantidad,
+          precioUnitario: item.precioUnitario,
+          subtotal: item.cantidad * item.precioUnitario,
+        })),
       },
     });
 
-    // Reducir stock de cada producto
     for (const item of data.items) {
-      await this.prisma.producto.update({
-        where: { id: item.productoId },
-        data: { stock: { decrement: item.cantidad } },
-      });
+      await this.repository.decrementStock(item.productoId, item.cantidad);
     }
 
     return transaccion;

@@ -10,13 +10,16 @@ exports.VentasModule = void 0;
 const common_1 = require("@nestjs/common");
 const ventas_service_1 = require("./ventas.service");
 const ventas_controller_1 = require("./ventas.controller");
+const ventas_repository_1 = require("./ventas.repository");
+const productos_module_1 = require("../productos/productos.module");
 let VentasModule = class VentasModule {
 };
 exports.VentasModule = VentasModule;
 exports.VentasModule = VentasModule = __decorate([
     (0, common_1.Module)({
+        imports: [productos_module_1.ProductosModule],
         controllers: [ventas_controller_1.VentasController],
-        providers: [ventas_service_1.VentasService],
+        providers: [ventas_service_1.VentasService, ventas_repository_1.VentasRepository],
     })
 ], VentasModule);
 //# sourceMappingURL=ventas.module.js.map

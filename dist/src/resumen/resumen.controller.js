@@ -15,13 +15,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResumenController = void 0;
 const common_1 = require("@nestjs/common");
 const resumen_service_1 = require("./resumen.service");
+const resumen_dto_1 = require("./dto/resumen.dto");
 let ResumenController = class ResumenController {
     resumenService;
     constructor(resumenService) {
         this.resumenService = resumenService;
     }
-    getResumen(mes, anio) {
-        return this.resumenService.getResumenMensual(mes ? parseInt(mes) : undefined, anio ? parseInt(anio) : undefined);
+    getResumen(filtros) {
+        return this.resumenService.getResumenMensual(filtros.mes, filtros.anio);
     }
     getProductoMasVendido() {
         return this.resumenService.getProductoMasVendido();
@@ -30,10 +31,9 @@ let ResumenController = class ResumenController {
 exports.ResumenController = ResumenController;
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('mes')),
-    __param(1, (0, common_1.Query)('anio')),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [resumen_dto_1.FiltroResumenDto]),
     __metadata("design:returntype", void 0)
 ], ResumenController.prototype, "getResumen", null);
 __decorate([

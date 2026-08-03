@@ -1,17 +1,20 @@
-import { PrismaService } from '../prisma/prisma.service';
+import { VentasRepository } from './ventas.repository';
+import { ProductosRepository } from '../productos/productos.repository';
+import type { CreateVentaDto } from './dto/ventas.dto';
 export declare class VentasService {
-    private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly repository;
+    private readonly productosRepository;
+    constructor(repository: VentasRepository, productosRepository: ProductosRepository);
     getTransaccionesPorPeriodo(periodo?: string, desde?: string, hasta?: string): Promise<({
         items: ({
             producto: {
-                tamano: string;
                 id: string;
                 codigo: string | null;
                 nombre: string;
                 precio: number;
                 stock: number;
                 categoria: string;
+                tamano: string;
                 unidad: string;
                 activo: boolean;
                 createdAt: Date;
@@ -22,8 +25,8 @@ export declare class VentasService {
             cantidad: number;
             precioUnitario: number;
             subtotal: number;
-            productoId: string;
             transaccionId: string;
+            productoId: string;
         })[];
     } & {
         id: string;
@@ -32,23 +35,16 @@ export declare class VentasService {
         total: number;
         fecha: Date;
     })[]>;
-    registrarTransaccion(data: {
-        items: {
-            productoId: string;
-            cantidad: number;
-            precioUnitario: number;
-        }[];
-        fecha?: string | Date;
-    }): Promise<{
+    registrarTransaccion(data: CreateVentaDto): Promise<{
         items: ({
             producto: {
-                tamano: string;
                 id: string;
                 codigo: string | null;
                 nombre: string;
                 precio: number;
                 stock: number;
                 categoria: string;
+                tamano: string;
                 unidad: string;
                 activo: boolean;
                 createdAt: Date;
@@ -59,8 +55,8 @@ export declare class VentasService {
             cantidad: number;
             precioUnitario: number;
             subtotal: number;
-            productoId: string;
             transaccionId: string;
+            productoId: string;
         })[];
     } & {
         id: string;

@@ -1,17 +1,18 @@
 import { VentasService } from './ventas.service';
+import { CreateVentaDto } from './dto/ventas.dto';
 export declare class VentasController {
     private readonly ventasService;
     constructor(ventasService: VentasService);
     findAll(periodo?: string, desde?: string, hasta?: string): Promise<({
         items: ({
             producto: {
-                tamano: string;
                 id: string;
                 codigo: string | null;
                 nombre: string;
                 precio: number;
                 stock: number;
                 categoria: string;
+                tamano: string;
                 unidad: string;
                 activo: boolean;
                 createdAt: Date;
@@ -22,8 +23,8 @@ export declare class VentasController {
             cantidad: number;
             precioUnitario: number;
             subtotal: number;
-            productoId: string;
             transaccionId: string;
+            productoId: string;
         })[];
     } & {
         id: string;
@@ -32,16 +33,16 @@ export declare class VentasController {
         total: number;
         fecha: Date;
     })[]>;
-    registrar(body: any): Promise<{
+    registrar(body: CreateVentaDto): Promise<{
         items: ({
             producto: {
-                tamano: string;
                 id: string;
                 codigo: string | null;
                 nombre: string;
                 precio: number;
                 stock: number;
                 categoria: string;
+                tamano: string;
                 unidad: string;
                 activo: boolean;
                 createdAt: Date;
@@ -52,8 +53,8 @@ export declare class VentasController {
             cantidad: number;
             precioUnitario: number;
             subtotal: number;
-            productoId: string;
             transaccionId: string;
+            productoId: string;
         })[];
     } & {
         id: string;

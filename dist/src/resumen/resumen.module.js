@@ -10,13 +10,14 @@ exports.ResumenModule = void 0;
 const common_1 = require("@nestjs/common");
 const resumen_service_1 = require("./resumen.service");
 const resumen_controller_1 = require("./resumen.controller");
+const resumen_repository_1 = require("./resumen.repository");
 let ResumenModule = class ResumenModule {
 };
 exports.ResumenModule = ResumenModule;
 exports.ResumenModule = ResumenModule = __decorate([
     (0, common_1.Module)({
         controllers: [resumen_controller_1.ResumenController],
-        providers: [resumen_service_1.ResumenService],
+        providers: [resumen_service_1.ResumenService, resumen_repository_1.ResumenRepository],
     })
 ], ResumenModule);
 //# sourceMappingURL=resumen.module.js.map
