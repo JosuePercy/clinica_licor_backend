@@ -7,8 +7,12 @@ import {
   Body,
   Param,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ProductosService } from './productos.service';
+import { CreateProductoDto } from './dto/create-producto.dto';
+import { UpdateProductoDto } from './dto/update-producto.dto';
 
 @Controller('productos')
 export class ProductosController {
@@ -23,22 +27,30 @@ export class ProductosController {
     return this.productosService.findAll({ codigo, stockBajo, categoria });
   }
 
+  // Endpoint de scanner — debe ir antes de :id para no ser interceptado
+  @Get('scan/:codigo')
+  scanBarcode(@Param('codigo') codigo: string) {
+    return this.productosService.findByCodigo(codigo);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productosService.findOne(id);
   }
 
   @Post()
-  create(@Body() body: any) {
+  @HttpCode(HttpStatus.CREATED)
+  create(@Body() body: CreateProductoDto) {
     return this.productosService.create(body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateProductoDto) {
     return this.productosService.update(id, body);
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {
     return this.productosService.remove(id);
   }

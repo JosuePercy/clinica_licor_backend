@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductosController = void 0;
 const common_1 = require("@nestjs/common");
 const productos_service_1 = require("./productos.service");
+const create_producto_dto_1 = require("./dto/create-producto.dto");
+const update_producto_dto_1 = require("./dto/update-producto.dto");
 let ProductosController = class ProductosController {
     productosService;
     constructor(productosService) {
@@ -22,6 +24,9 @@ let ProductosController = class ProductosController {
     }
     findAll(codigo, stockBajo, categoria) {
         return this.productosService.findAll({ codigo, stockBajo, categoria });
+    }
+    scanBarcode(codigo) {
+        return this.productosService.findByCodigo(codigo);
     }
     findOne(id) {
         return this.productosService.findOne(id);
@@ -47,6 +52,13 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductosController.prototype, "findAll", null);
 __decorate([
+    (0, common_1.Get)('scan/:codigo'),
+    __param(0, (0, common_1.Param)('codigo')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductosController.prototype, "scanBarcode", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -55,9 +67,10 @@ __decorate([
 ], ProductosController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [create_producto_dto_1.CreateProductoDto]),
     __metadata("design:returntype", void 0)
 ], ProductosController.prototype, "create", null);
 __decorate([
@@ -65,11 +78,12 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, update_producto_dto_1.UpdateProductoDto]),
     __metadata("design:returntype", void 0)
 ], ProductosController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

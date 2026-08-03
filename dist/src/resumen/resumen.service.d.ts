@@ -1,9 +1,9 @@
-import { PrismaService } from '../prisma/prisma.service';
+import { ResumenRepository } from './resumen.repository';
 export declare class ResumenService {
-    private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly repository;
+    constructor(repository: ResumenRepository);
     getResumenMensual(mes?: number, anio?: number): Promise<{
-        totalVentas: any;
+        totalVentas: number;
         ganancia: number;
         totalGastos: number;
         productosTopVendidos: {

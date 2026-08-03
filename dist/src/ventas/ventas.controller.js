@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.VentasController = void 0;
 const common_1 = require("@nestjs/common");
 const ventas_service_1 = require("./ventas.service");
+const ventas_dto_1 = require("./dto/ventas.dto");
 let VentasController = class VentasController {
     ventasService;
     constructor(ventasService) {
@@ -39,9 +40,10 @@ __decorate([
 ], VentasController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [ventas_dto_1.CreateVentaDto]),
     __metadata("design:returntype", void 0)
 ], VentasController.prototype, "registrar", null);
 exports.VentasController = VentasController = __decorate([

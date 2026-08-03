@@ -11,11 +11,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductosService = void 0;
 const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
+const productos_repository_1 = require("./productos.repository");
 let ProductosService = class ProductosService {
-    prisma;
-    constructor(prisma) {
-        this.prisma = prisma;
+    repository;
+    constructor(repository) {
+        this.repository = repository;
     }
     toDto(p) {
         const { tamano, ...rest } = p;
@@ -23,65 +23,66 @@ let ProductosService = class ProductosService {
     }
     async findAll(filters) {
         if (filters.codigo) {
-            const producto = await this.prisma.producto.findUnique({
-                where: { codigo: filters.codigo },
-            });
+            const producto = await this.repository.findByCodigo(filters.codigo);
             return producto ? [this.toDto(producto)] : [];
         }
+        const where = { activo: true };
         if (filters.stockBajo !== undefined) {
-            const productos = await this.prisma.producto.findMany({
-                where: { activo: true, stock: { lte: parseInt(filters.stockBajo) } },
-                orderBy: { stock: 'asc' },
-            });
-            return productos.map((p) => this.toDto(p));
+            where.stock = { lte: parseInt(filters.stockBajo, 10) };
         }
         if (filters.categoria) {
-            const productos = await this.prisma.producto.findMany({
-                where: { activo: true, categoria: filters.categoria },
-                orderBy: { nombre: 'asc' },
-            });
-            return productos.map((p) => this.toDto(p));
+            where.categoria = filters.categoria;
         }
-        const productos = await this.prisma.producto.findMany({
-            where: { activo: true },
-            orderBy: { nombre: 'asc' },
-        });
+        const productos = await this.repository.findMany(where, { nombre: 'asc' });
         return productos.map((p) => this.toDto(p));
     }
+    async findByCodigo(codigo) {
+        const producto = await this.repository.findByCodigo(codigo);
+        if (!producto) {
+            throw new common_1.NotFoundException(`Producto con código ${codigo} no encontrado`);
+        }
+        return this.toDto(producto);
+    }
     async findOne(id) {
-        const producto = await this.prisma.producto.findUnique({ where: { id } });
-        if (!producto)
+        const producto = await this.repository.findById(id);
+        if (!producto) {
             throw new common_1.NotFoundException(`Producto ${id} no encontrado`);
+        }
         return this.toDto(producto);
     }
     async create(data) {
         const { tamaño, tamano, ...rest } = data;
-        const producto = await this.prisma.producto.create({
-            data: { ...rest, tamano: tamaño ?? tamano ?? '' },
+        const producto = await this.repository.create({
+            ...rest,
+            tamano: tamaño ?? tamano ?? '',
         });
         return this.toDto(producto);
     }
     async update(id, data) {
+        const producto = await this.repository.findById(id);
+        if (!producto) {
+            throw new common_1.NotFoundException(`Producto ${id} no encontrado`);
+        }
         const { tamaño, tamano, ...rest } = data;
         const updateData = { ...rest };
         if (tamaño !== undefined)
             updateData.tamano = tamaño;
         if (tamano !== undefined)
             updateData.tamano = tamano;
-        const producto = await this.prisma.producto.update({
-            where: { id },
-            data: updateData,
-        });
-        return this.toDto(producto);
+        const updated = await this.repository.update(id, updateData);
+        return this.toDto(updated);
     }
     async remove(id) {
-        await this.prisma.producto.delete({ where: { id } });
-        return { success: true };
+        const producto = await this.repository.findById(id);
+        if (!producto) {
+            throw new common_1.NotFoundException(`Producto ${id} no encontrado`);
+        }
+        await this.repository.delete(id);
     }
 };
 exports.ProductosService = ProductosService;
 exports.ProductosService = ProductosService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [productos_repository_1.ProductosRepository])
 ], ProductosService);
 //# sourceMappingURL=productos.service.js.map

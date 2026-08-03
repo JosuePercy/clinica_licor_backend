@@ -1,9 +1,10 @@
 import { ResumenService } from './resumen.service';
+import { FiltroResumenDto } from './dto/resumen.dto';
 export declare class ResumenController {
     private readonly resumenService;
     constructor(resumenService: ResumenService);
-    getResumen(mes?: string, anio?: string): Promise<{
-        totalVentas: any;
+    getResumen(filtros: FiltroResumenDto): Promise<{
+        totalVentas: number;
         ganancia: number;
         totalGastos: number;
         productosTopVendidos: {

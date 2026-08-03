@@ -11,11 +11,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResumenService = void 0;
 const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
+const resumen_repository_1 = require("./resumen.repository");
 let ResumenService = class ResumenService {
-    prisma;
-    constructor(prisma) {
-        this.prisma = prisma;
+    repository;
+    constructor(repository) {
+        this.repository = repository;
     }
     async getResumenMensual(mes, anio) {
         const now = new Date();
@@ -23,14 +23,7 @@ let ResumenService = class ResumenService {
         const targetAnio = anio ?? now.getFullYear();
         const inicio = new Date(targetAnio, targetMes - 1, 1);
         const fin = new Date(targetAnio, targetMes, 0, 23, 59, 59, 999);
-        const transacciones = await this.prisma.transaccion.findMany({
-            where: { fecha: { gte: inicio, lte: fin } },
-            include: {
-                items: {
-                    include: { producto: true },
-                },
-            },
-        });
+        const transacciones = await this.repository.findTransacciones({ fecha: { gte: inicio, lte: fin } });
         const totalVentas = transacciones.reduce((sum, t) => sum + t.total, 0);
         const productMap = new Map();
         for (const t of transacciones) {
@@ -60,12 +53,7 @@ let ResumenService = class ResumenService {
     async getProductoMasVendido() {
         const now = new Date();
         const inicio = new Date(now.getFullYear(), now.getMonth(), 1);
-        const items = await this.prisma.itemVenta.findMany({
-            where: {
-                transaccion: { fecha: { gte: inicio } },
-            },
-            include: { producto: true },
-        });
+        const items = await this.repository.findItemsVenta({ transaccion: { fecha: { gte: inicio } } });
         if (!items.length)
             return null;
         const productMap = new Map();
@@ -87,6 +75,6 @@ let ResumenService = class ResumenService {
 exports.ResumenService = ResumenService;
 exports.ResumenService = ResumenService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [resumen_repository_1.ResumenRepository])
 ], ResumenService);
 //# sourceMappingURL=resumen.service.js.map

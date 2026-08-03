@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { ResumenRepository } from './resumen.repository';
 
 @Injectable()
 export class ResumenService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly repository: ResumenRepository) {}
 
   async getResumenMensual(mes?: number, anio?: number) {
     const now = new Date();
@@ -13,14 +13,7 @@ export class ResumenService {
     const inicio = new Date(targetAnio, targetMes - 1, 1);
     const fin = new Date(targetAnio, targetMes, 0, 23, 59, 59, 999);
 
-    const transacciones = await this.prisma.transaccion.findMany({
-      where: { fecha: { gte: inicio, lte: fin } },
-      include: {
-        items: {
-          include: { producto: true },
-        },
-      },
-    });
+    const transacciones = await this.repository.findTransacciones({ fecha: { gte: inicio, lte: fin } });
 
     const totalVentas = transacciones.reduce((sum, t) => sum + t.total, 0);
 
@@ -56,12 +49,7 @@ export class ResumenService {
     const now = new Date();
     const inicio = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const items = await this.prisma.itemVenta.findMany({
-      where: {
-        transaccion: { fecha: { gte: inicio } },
-      },
-      include: { producto: true },
-    });
+    const items = await this.repository.findItemsVenta({ transaccion: { fecha: { gte: inicio } } });
 
     if (!items.length) return null;
 

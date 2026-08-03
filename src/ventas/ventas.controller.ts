@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { VentasService } from './ventas.service';
+import { CreateVentaDto } from './dto/ventas.dto';
 
 @Controller('ventas')
 export class VentasController {
@@ -15,7 +16,8 @@ export class VentasController {
   }
 
   @Post()
-  registrar(@Body() body: any) {
+  @HttpCode(HttpStatus.CREATED)
+  registrar(@Body() body: CreateVentaDto) {
     return this.ventasService.registrarTransaccion(body);
   }
 }
