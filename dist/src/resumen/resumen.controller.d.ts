@@ -3,7 +3,7 @@ export declare class ResumenController {
     private readonly resumenService;
     constructor(resumenService: ResumenService);
     getResumen(mes?: string, anio?: string): Promise<{
-        totalVentas: number;
+        totalVentas: any;
         ganancia: number;
         totalGastos: number;
         productosTopVendidos: {

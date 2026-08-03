@@ -3,7 +3,7 @@ export declare class ResumenService {
     private readonly prisma;
     constructor(prisma: PrismaService);
     getResumenMensual(mes?: number, anio?: number): Promise<{
-        totalVentas: number;
+        totalVentas: any;
         ganancia: number;
         totalGastos: number;
         productosTopVendidos: {

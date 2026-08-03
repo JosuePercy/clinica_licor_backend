@@ -7,7 +7,7 @@ export declare class ProductosService {
         codigo?: string;
         stockBajo?: string;
         categoria?: string;
-    }): Promise<any[]>;
+    }): Promise<any>;
     findOne(id: string): Promise<any>;
     create(data: {
         nombre: string;
