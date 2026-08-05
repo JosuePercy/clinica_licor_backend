@@ -65,4 +65,3 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateProductoDto.prototype, "codigo", void 0);
-//# sourceMappingURL=create-producto.dto.js.map

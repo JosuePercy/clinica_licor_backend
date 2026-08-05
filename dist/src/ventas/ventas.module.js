@@ -22,4 +22,3 @@ exports.VentasModule = VentasModule = __decorate([
         providers: [ventas_service_1.VentasService, ventas_repository_1.VentasRepository],
     })
 ], VentasModule);
-//# sourceMappingURL=ventas.module.js.map

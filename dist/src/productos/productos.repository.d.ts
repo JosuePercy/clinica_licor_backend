@@ -16,6 +16,7 @@ export declare class ProductosRepository {
         createdAt: Date;
         updatedAt: Date;
     } | null>;
+    findLastCodigo(): Promise<string | null>;
     findById(id: string): Promise<{
         id: string;
         codigo: string | null;

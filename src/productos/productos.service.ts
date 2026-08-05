@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductosRepository } from './productos.repository';
 import type { CreateProductoDto } from './dto/create-producto.dto';
 import type { UpdateProductoDto } from './dto/update-producto.dto';
+import { generarCodigoBarras } from './utils/barcode.generator';
 import type { Producto } from '@prisma/client';
 
 @Injectable()
@@ -47,14 +48,23 @@ export class ProductosService {
     return this.toDto(producto);
   }
 
-  async create(data: CreateProductoDto) {
-    const { tamaño, tamano, ...rest } = data;
-    const producto = await this.repository.create({
-      ...rest,
-      tamano: tamaño ?? tamano ?? '',
-    });
-    return this.toDto(producto);
+async create(data: CreateProductoDto) {
+  const { tamaño, tamano, codigo, ...rest } = data;
+
+  let codigoFinal = codigo;
+  if (!codigoFinal) {
+    const ultimoCodigo = await this.repository.findLastCodigo();
+    codigoFinal = generarCodigoBarras(ultimoCodigo);
   }
+
+  const producto = await this.repository.create({
+    ...rest,
+    codigo: codigoFinal,
+    tamano: tamaño ?? tamano ?? '',
+  });
+
+  return this.toDto(producto);
+}
 
   async update(id: string, data: UpdateProductoDto) {
     const producto = await this.repository.findById(id);

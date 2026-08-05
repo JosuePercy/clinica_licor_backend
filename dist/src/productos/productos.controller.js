@@ -93,4 +93,3 @@ exports.ProductosController = ProductosController = __decorate([
     (0, common_1.Controller)('productos'),
     __metadata("design:paramtypes", [productos_service_1.ProductosService])
 ], ProductosController);
-//# sourceMappingURL=productos.controller.js.map
