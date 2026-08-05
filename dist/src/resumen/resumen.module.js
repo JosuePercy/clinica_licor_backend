@@ -20,4 +20,3 @@ exports.ResumenModule = ResumenModule = __decorate([
         providers: [resumen_service_1.ResumenService, resumen_repository_1.ResumenRepository],
     })
 ], ResumenModule);
-//# sourceMappingURL=resumen.module.js.map

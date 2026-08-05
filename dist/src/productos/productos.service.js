@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductosService = void 0;
 const common_1 = require("@nestjs/common");
 const productos_repository_1 = require("./productos.repository");
+const barcode_generator_1 = require("./utils/barcode.generator");
 let ProductosService = class ProductosService {
     repository;
     constructor(repository) {
@@ -51,9 +52,15 @@ let ProductosService = class ProductosService {
         return this.toDto(producto);
     }
     async create(data) {
-        const { tamaño, tamano, ...rest } = data;
+        const { tamaño, tamano, codigo, ...rest } = data;
+        let codigoFinal = codigo;
+        if (!codigoFinal) {
+            const ultimoCodigo = await this.repository.findLastCodigo();
+            codigoFinal = (0, barcode_generator_1.generarCodigoBarras)(ultimoCodigo);
+        }
         const producto = await this.repository.create({
             ...rest,
+            codigo: codigoFinal,
             tamano: tamaño ?? tamano ?? '',
         });
         return this.toDto(producto);

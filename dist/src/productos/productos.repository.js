@@ -20,6 +20,14 @@ let ProductosRepository = class ProductosRepository {
     async findByCodigo(codigo) {
         return this.prisma.producto.findUnique({ where: { codigo } });
     }
+    async findLastCodigo() {
+        const productos = await this.prisma.producto.findMany({
+            where: { codigo: { startsWith: 'LIC-' } },
+            orderBy: { codigo: 'desc' },
+            take: 1,
+        });
+        return productos[0]?.codigo ?? null;
+    }
     async findById(id) {
         return this.prisma.producto.findUnique({ where: { id } });
     }

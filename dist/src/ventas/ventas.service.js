@@ -95,4 +95,3 @@ exports.VentasService = VentasService = __decorate([
     __metadata("design:paramtypes", [ventas_repository_1.VentasRepository,
         productos_repository_1.ProductosRepository])
 ], VentasService);
-//# sourceMappingURL=ventas.service.js.map
