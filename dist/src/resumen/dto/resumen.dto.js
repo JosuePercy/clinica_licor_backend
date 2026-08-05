@@ -32,3 +32,4 @@ __decorate([
     (0, class_validator_1.Min)(2000),
     __metadata("design:type", Number)
 ], FiltroResumenDto.prototype, "anio", void 0);
+//# sourceMappingURL=resumen.dto.js.map

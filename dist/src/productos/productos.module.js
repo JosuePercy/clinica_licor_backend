@@ -21,3 +21,4 @@ exports.ProductosModule = ProductosModule = __decorate([
         exports: [productos_repository_1.ProductosRepository],
     })
 ], ProductosModule);
+//# sourceMappingURL=productos.module.js.map

@@ -42,3 +42,4 @@ exports.VentasRepository = VentasRepository = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], VentasRepository);
+//# sourceMappingURL=ventas.repository.js.map
