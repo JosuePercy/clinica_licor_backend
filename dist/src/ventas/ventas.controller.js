@@ -50,3 +50,4 @@ exports.VentasController = VentasController = __decorate([
     (0, common_1.Controller)('ventas'),
     __metadata("design:paramtypes", [ventas_service_1.VentasService])
 ], VentasController);
+//# sourceMappingURL=ventas.controller.js.map

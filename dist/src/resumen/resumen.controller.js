@@ -46,3 +46,4 @@ exports.ResumenController = ResumenController = __decorate([
     (0, common_1.Controller)('resumen'),
     __metadata("design:paramtypes", [resumen_service_1.ResumenService])
 ], ResumenController);
+//# sourceMappingURL=resumen.controller.js.map

@@ -77,3 +77,4 @@ exports.ResumenService = ResumenService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [resumen_repository_1.ResumenRepository])
 ], ResumenService);
+//# sourceMappingURL=resumen.service.js.map
