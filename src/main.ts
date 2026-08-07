@@ -15,15 +15,23 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    origin: [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'https://clinica-del-licor.vercel.app',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
   app.setGlobalPrefix('api');
 
   const port = process.env.PORT ?? 3001;
+
   await app.listen(port);
-  console.log(`Backend corriendo en http://localhost:${port}/api`);
+
+  console.log(`🚀 Backend corriendo en el puerto ${port}`);
 }
+
 bootstrap();
