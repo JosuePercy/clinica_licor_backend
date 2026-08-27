@@ -5,6 +5,7 @@ export declare class VentasService {
     private readonly repository;
     private readonly productosRepository;
     constructor(repository: VentasRepository, productosRepository: ProductosRepository);
+    private parseLocalDate;
     getTransaccionesPorPeriodo(periodo?: string, desde?: string, hasta?: string): Promise<({
         items: ({
             producto: {

@@ -20,6 +20,10 @@ let VentasService = class VentasService {
         this.repository = repository;
         this.productosRepository = productosRepository;
     }
+    parseLocalDate(dateString) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
     async getTransaccionesPorPeriodo(periodo = 'dia', desde, hasta) {
         const now = new Date();
         let fechaInicio;
@@ -39,13 +43,17 @@ let VentasService = class VentasService {
                 fechaFin = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
                 break;
             case 'fecha-especifica':
-                fechaInicio = desde ? new Date(desde) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                fechaInicio = desde
+                    ? this.parseLocalDate(desde)
+                    : new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 fechaFin = new Date(fechaInicio);
                 fechaFin.setHours(23, 59, 59, 999);
                 break;
             case 'rango':
-                fechaInicio = desde ? new Date(desde) : new Date(now.getFullYear(), now.getMonth(), 1);
-                fechaFin = hasta ? new Date(hasta) : new Date();
+                fechaInicio = desde
+                    ? this.parseLocalDate(desde)
+                    : new Date(now.getFullYear(), now.getMonth(), 1);
+                fechaFin = hasta ? this.parseLocalDate(hasta) : new Date();
                 fechaFin.setHours(23, 59, 59, 999);
                 break;
             default:
