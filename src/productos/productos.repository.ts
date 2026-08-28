@@ -7,37 +7,55 @@ export class ProductosRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByCodigo(codigo: string) {
-    return this.prisma.producto.findUnique({ where: { codigo } });
+    return this.prisma.product.findUnique({
+      where: { code: codigo },
+      include: { category: true },
+    });
   }
+
   async findLastCodigo() {
-    const productos = await this.prisma.producto.findMany({
-      where: { codigo: { startsWith: 'LIC-' } },
-      orderBy: { codigo: 'desc' },
+    const productos = await this.prisma.product.findMany({
+      where: { code: { startsWith: 'LIC-' } },
+      orderBy: { code: 'desc' },
       take: 1,
     });
-    return productos[0]?.codigo ?? null;
+    return productos[0]?.code ?? null;
   }
+
   async findById(id: string) {
-    return this.prisma.producto.findUnique({ where: { id } });
+    return this.prisma.product.findUnique({
+      where: { id },
+      include: { category: true },
+    });
   }
 
   async findMany(
-    where: Prisma.ProductoWhereInput,
-    orderBy: Prisma.ProductoOrderByWithRelationInput,
+    where: Prisma.ProductWhereInput,
+    orderBy: Prisma.ProductOrderByWithRelationInput,
   ) {
-    return this.prisma.producto.findMany({ where, orderBy });
+    return this.prisma.product.findMany({
+      where,
+      orderBy,
+      include: { category: true },
+    });
   }
 
-  async create(data: Prisma.ProductoCreateInput) {
-    return this.prisma.producto.create({ data });
+  async create(data: Prisma.ProductCreateInput) {
+    return this.prisma.product.create({
+      data,
+      include: { category: true },
+    });
   }
 
-  async update(id: string, data: Prisma.ProductoUpdateInput) {
-    return this.prisma.producto.update({ where: { id }, data });
+  async update(id: string, data: Prisma.ProductUpdateInput) {
+    return this.prisma.product.update({
+      where: { id },
+      data,
+      include: { category: true },
+    });
   }
 
-  async delete(id: string) {
-    return this.prisma.producto.delete({ where: { id } });
+  async findCategoryByName(name: string) {
+    return this.prisma.category.findUnique({ where: { name } });
   }
-
 }

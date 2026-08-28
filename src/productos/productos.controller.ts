@@ -27,7 +27,6 @@ export class ProductosController {
     return this.productosService.findAll({ codigo, stockBajo, categoria });
   }
 
-  // Endpoint de scanner — debe ir antes de :id para no ser interceptado
   @Get('scan/:codigo')
   scanBarcode(@Param('codigo') codigo: string) {
     return this.productosService.findByCodigo(codigo);

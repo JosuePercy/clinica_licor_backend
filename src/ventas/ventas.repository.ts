@@ -6,23 +6,23 @@ import type { Prisma } from '@prisma/client';
 export class VentasRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findMany(where: Prisma.TransaccionWhereInput) {
-    return this.prisma.transaccion.findMany({
+  async findMany(where: Prisma.SaleWhereInput) {
+    return this.prisma.sale.findMany({
       where,
-      include: { items: { include: { producto: true } } },
-      orderBy: { fecha: 'desc' },
+      include: { items: { include: { product: true } } },
+      orderBy: { date: 'desc' },
     });
   }
 
-  async create(data: Prisma.TransaccionCreateInput) {
-    return this.prisma.transaccion.create({
+  async create(data: Prisma.SaleCreateInput) {
+    return this.prisma.sale.create({
       data,
-      include: { items: { include: { producto: true } } },
+      include: { items: { include: { product: true } } },
     });
   }
 
   async decrementStock(productoId: string, cantidad: number) {
-    return this.prisma.producto.update({
+    return this.prisma.product.update({
       where: { id: productoId },
       data: { stock: { decrement: cantidad } },
     });

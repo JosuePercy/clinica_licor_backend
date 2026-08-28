@@ -3,22 +3,22 @@ import { Type } from 'class-transformer';
 
 export class ItemVentaDto {
   @IsString()
-  productoId: string;
+  productoId!: string;
 
   @IsInt()
   @Min(1)
-  cantidad: number;
+  cantidad!: number;
 
   @IsNumber()
   @Min(0)
-  precioUnitario: number;
+  precioUnitario!: number;
 }
 
 export class CreateVentaDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ItemVentaDto)
-  items: ItemVentaDto[];
+  items!: ItemVentaDto[];
 
   @IsOptional()
   @IsString()

@@ -6,17 +6,17 @@ import type { Prisma } from '@prisma/client';
 export class ResumenRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findTransacciones(where: Prisma.TransaccionWhereInput) {
-    return this.prisma.transaccion.findMany({
+  async findTransacciones(where: Prisma.SaleWhereInput) {
+    return this.prisma.sale.findMany({
       where,
-      include: { items: { include: { producto: true } } },
+      include: { items: { include: { product: true } } },
     });
   }
 
-  async findItemsVenta(where: Prisma.ItemVentaWhereInput) {
-    return this.prisma.itemVenta.findMany({
+  async findItemsVenta(where: Prisma.SaleItemWhereInput) {
+    return this.prisma.saleItem.findMany({
       where,
-      include: { producto: true },
+      include: { product: true },
     });
   }
 }

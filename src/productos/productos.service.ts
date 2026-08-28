@@ -1,17 +1,25 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ProductosRepository } from './productos.repository';
 import type { CreateProductoDto } from './dto/create-producto.dto';
 import type { UpdateProductoDto } from './dto/update-producto.dto';
 import { generarCodigoBarras } from './utils/barcode.generator';
-import type { Producto } from '@prisma/client';
+import type { Product, Category } from '@prisma/client';
+
+type ProductWithCategory = Product & { category: Category };
 
 @Injectable()
 export class ProductosService {
   constructor(private readonly repository: ProductosRepository) {}
 
-  private toDto(p: Producto) {
-    const { tamano, ...rest } = p;
-    return { ...rest, tamaño: tamano };
+  private toDto(p: ProductWithCategory) {
+    const { categoryId, category, size, active, code, ...rest } = p;
+    return {
+      ...rest,
+      tamaño: size,
+      activo: active,
+      codigo: code,
+      categoria: category?.name ?? null,
+    };
   }
 
   async findAll(filters: { codigo?: string; stockBajo?: string; categoria?: string }) {
@@ -20,15 +28,17 @@ export class ProductosService {
       return producto ? [this.toDto(producto)] : [];
     }
 
-    const where: { activo: boolean; stock?: { lte: number }; categoria?: string } = { activo: true };
+    const where: { active: boolean; stock?: { lte: number }; category?: { name: string } } = {
+      active: true,
+    };
     if (filters.stockBajo !== undefined) {
       where.stock = { lte: parseInt(filters.stockBajo, 10) };
     }
     if (filters.categoria) {
-      where.categoria = filters.categoria;
+      where.category = { name: filters.categoria };
     }
 
-    const productos = await this.repository.findMany(where, { nombre: 'asc' });
+    const productos = await this.repository.findMany(where, { name: 'asc' });
     return productos.map((p) => this.toDto(p));
   }
 
@@ -48,8 +58,13 @@ export class ProductosService {
     return this.toDto(producto);
   }
 
-async create(data: CreateProductoDto) {
-  const { tamaño, tamano, codigo, ...rest } = data;
+  async create(data: CreateProductoDto) {
+  const { tamaño, tamano, codigo, categoria, nombre, precio, unidad, activo, ...rest } = data;
+
+  const category = await this.repository.findCategoryByName(categoria);
+  if (!category) {
+    throw new BadRequestException(`La categoría "${categoria}" no existe`);
+  }
 
   let codigoFinal = codigo;
   if (!codigoFinal) {
@@ -59,23 +74,35 @@ async create(data: CreateProductoDto) {
 
   const producto = await this.repository.create({
     ...rest,
-    codigo: codigoFinal,
-    tamano: tamaño ?? tamano ?? '',
+    name: nombre,
+    price: precio,
+    unit: unidad,
+    active: activo ?? true,
+    code: codigoFinal,
+    size: tamaño ?? tamano ?? '',
+    category: { connect: { id: category.id } },
   });
 
   return this.toDto(producto);
 }
-
   async update(id: string, data: UpdateProductoDto) {
     const producto = await this.repository.findById(id);
     if (!producto) {
       throw new NotFoundException(`Producto ${id} no encontrado`);
     }
 
-    const { tamaño, tamano, ...rest } = data;
+    const { tamaño, tamano, categoria, ...rest } = data;
     const updateData: Record<string, unknown> = { ...rest };
-    if (tamaño !== undefined) updateData.tamano = tamaño;
-    if (tamano !== undefined) updateData.tamano = tamano;
+    if (tamaño !== undefined) updateData.size = tamaño;
+    if (tamano !== undefined) updateData.size = tamano;
+
+    if (categoria !== undefined) {
+      const category = await this.repository.findCategoryByName(categoria);
+      if (!category) {
+        throw new BadRequestException(`La categoría "${categoria}" no existe`);
+      }
+      updateData.category = { connect: { id: category.id } };
+    }
 
     const updated = await this.repository.update(id, updateData);
     return this.toDto(updated);
@@ -86,6 +113,6 @@ async create(data: CreateProductoDto) {
     if (!producto) {
       throw new NotFoundException(`Producto ${id} no encontrado`);
     }
-    await this.repository.delete(id);
+    await this.repository.update(id, { active: false });
   }
 }

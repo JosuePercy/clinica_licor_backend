@@ -10,11 +10,10 @@ export class VentasService {
     private readonly productosRepository: ProductosRepository,
   ) {}
 
- private parseLocalDate(dateString: string): Date {
+  private parseLocalDate(dateString: string): Date {
     const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day); // hora local, 00:00:00, sin ambigüedad UTC
+    return new Date(year, month - 1, day);
   }
-
 
   async getTransaccionesPorPeriodo(
     periodo: string = 'dia',
@@ -25,7 +24,7 @@ export class VentasService {
     let fechaInicio: Date;
     let fechaFin: Date;
 
-     switch (periodo) {
+    switch (periodo) {
       case 'semana': {
         const day = now.getDay();
         fechaInicio = new Date(now);
@@ -58,7 +57,8 @@ export class VentasService {
         fechaFin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     }
 
-    return this.repository.findMany({ fecha: { gte: fechaInicio, lte: fechaFin } });
+    const ventas = await this.repository.findMany({ date: { gte: fechaInicio, lte: fechaFin } });
+    return ventas.map((v) => this.toDto(v));
   }
 
   async registrarTransaccion(data: CreateVentaDto) {
@@ -66,7 +66,6 @@ export class VentasService {
       throw new BadRequestException('La venta debe tener al menos un ítem');
     }
 
-    // Verificar que todos los productos existen y tienen stock suficiente
     for (const item of data.items) {
       const producto = await this.productosRepository.findById(item.productoId);
       if (!producto) {
@@ -74,7 +73,7 @@ export class VentasService {
       }
       if (producto.stock < item.cantidad) {
         throw new BadRequestException(
-          `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, solicitado: ${item.cantidad}`,
+          `Stock insuficiente para "${producto.name}". Disponible: ${producto.stock}, solicitado: ${item.cantidad}`,
         );
       }
     }
@@ -86,15 +85,15 @@ export class VentasService {
     );
     const fecha = data.fecha ? new Date(data.fecha) : new Date();
 
-    const transaccion = await this.repository.create({
-      codigoVenta,
+    const venta = await this.repository.create({
+      saleCode: codigoVenta,
       total,
-      fecha,
+      date: fecha,
       items: {
         create: data.items.map((item) => ({
-          productoId: item.productoId,
-          cantidad: item.cantidad,
-          precioUnitario: item.precioUnitario,
+          product: { connect: { id: item.productoId } },
+          quantity: item.cantidad,
+          unitPrice: item.precioUnitario,
           subtotal: item.cantidad * item.precioUnitario,
         })),
       },
@@ -104,6 +103,31 @@ export class VentasService {
       await this.repository.decrementStock(item.productoId, item.cantidad);
     }
 
-    return transaccion;
+    return this.toDto(venta);
+  }
+
+  private toDto(venta: any) {
+    return {
+      id: venta.id,
+      codigoVenta: venta.saleCode,
+      total: venta.total,
+      fecha: venta.date,
+      createdAt: venta.createdAt,
+      anulado: venta.cancelled,
+      items: venta.items?.map((item: any) => ({
+        id: item.id,
+        productoId: item.productId,
+        cantidad: item.quantity,
+        precioUnitario: item.unitPrice,
+        subtotal: item.subtotal,
+        producto: item.product
+          ? {
+              id: item.product.id,
+              nombre: item.product.name,
+              precio: item.product.price,
+            }
+          : undefined,
+      })),
+    };
   }
 }

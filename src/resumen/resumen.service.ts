@@ -5,6 +5,15 @@ import { ResumenRepository } from './resumen.repository';
 export class ResumenService {
   constructor(private readonly repository: ResumenRepository) {}
 
+  private toProductoDto(p: any) {
+    if (!p) return null;
+    return {
+      id: p.id,
+      nombre: p.name,
+      precio: p.price,
+    };
+  }
+
   async getResumenMensual(mes?: number, anio?: number) {
     const now = new Date();
     const targetMes = mes ?? now.getMonth() + 1;
@@ -13,21 +22,20 @@ export class ResumenService {
     const inicio = new Date(targetAnio, targetMes - 1, 1);
     const fin = new Date(targetAnio, targetMes, 0, 23, 59, 59, 999);
 
-    const transacciones = await this.repository.findTransacciones({ fecha: { gte: inicio, lte: fin } });
+    const transacciones = await this.repository.findTransacciones({ date: { gte: inicio, lte: fin } });
 
     const totalVentas = transacciones.reduce((sum, t) => sum + t.total, 0);
 
-    // Agrupar ventas por producto
     const productMap = new Map<string, { producto: any; cantidadVendida: number }>();
     for (const t of transacciones) {
       for (const item of t.items) {
-        const existing = productMap.get(item.productoId);
+        const existing = productMap.get(item.productId);
         if (existing) {
-          existing.cantidadVendida += item.cantidad;
+          existing.cantidadVendida += item.quantity;
         } else {
-          productMap.set(item.productoId, {
-            producto: item.producto,
-            cantidadVendida: item.cantidad,
+          productMap.set(item.productId, {
+            producto: this.toProductoDto(item.product),
+            cantidadVendida: item.quantity,
           });
         }
       }
@@ -49,19 +57,19 @@ export class ResumenService {
     const now = new Date();
     const inicio = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const items = await this.repository.findItemsVenta({ transaccion: { fecha: { gte: inicio } } });
+    const items = await this.repository.findItemsVenta({ sale: { date: { gte: inicio } } });
 
     if (!items.length) return null;
 
     const productMap = new Map<string, { producto: any; cantidadVendida: number }>();
     for (const item of items) {
-      const existing = productMap.get(item.productoId);
+      const existing = productMap.get(item.productId);
       if (existing) {
-        existing.cantidadVendida += item.cantidad;
+        existing.cantidadVendida += item.quantity;
       } else {
-        productMap.set(item.productoId, {
-          producto: item.producto,
-          cantidadVendida: item.cantidad,
+        productMap.set(item.productId, {
+          producto: this.toProductoDto(item.product),
+          cantidadVendida: item.quantity,
         });
       }
     }
