@@ -3,23 +3,23 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
 
 @Injectable()
-export class ProductosRepository {
+export class ProductsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByCodigo(codigo: string) {
+  async findByCode(code: string) {
     return this.prisma.product.findUnique({
-      where: { code: codigo },
+      where: { code },
       include: { category: true },
     });
   }
 
-  async findLastCodigo() {
-    const productos = await this.prisma.product.findMany({
+  async findLastCode() {
+    const products = await this.prisma.product.findMany({
       where: { code: { startsWith: 'LIC-' } },
       orderBy: { code: 'desc' },
       take: 1,
     });
-    return productos[0]?.code ?? null;
+    return products[0]?.code ?? null;
   }
 
   async findById(id: string) {

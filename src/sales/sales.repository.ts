@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
 
 @Injectable()
-export class VentasRepository {
+export class SalesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findMany(where: Prisma.SaleWhereInput) {
@@ -21,10 +21,10 @@ export class VentasRepository {
     });
   }
 
-  async decrementStock(productoId: string, cantidad: number) {
+  async decrementStock(productId: string, quantity: number) {
     return this.prisma.product.update({
-      where: { id: productoId },
-      data: { stock: { decrement: cantidad } },
+      where: { id: productId },
+      data: { stock: { decrement: quantity } },
     });
   }
 }

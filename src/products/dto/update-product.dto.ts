@@ -1,14 +1,14 @@
 import { IsString, IsNumber, IsInt, IsBoolean, IsOptional, Min } from 'class-validator';
 
-export class UpdateProductoDto {
+export class UpdateProductDto {
   @IsOptional()
   @IsString()
-  nombre?: string;
+  name?: string;
 
   @IsOptional()
   @IsNumber()
   @Min(0)
-  precio?: number;
+  price?: number;
 
   @IsOptional()
   @IsInt()
@@ -17,25 +17,21 @@ export class UpdateProductoDto {
 
   @IsOptional()
   @IsString()
-  categoria?: string;
+  category?: string;
 
   @IsOptional()
   @IsString()
-  unidad?: string;
+  unit?: string;
 
   @IsOptional()
   @IsString()
-  tamano?: string;
-
-  @IsOptional()
-  @IsString()
-  tamaño?: string;
+  size?: string;
 
   @IsOptional()
   @IsBoolean()
-  activo?: boolean;
+  active?: boolean;
 
   @IsOptional()
   @IsString()
-  codigo?: string;
+  code?: string;
 }
