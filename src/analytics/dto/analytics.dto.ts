@@ -1,17 +1,17 @@
 import { IsInt, IsOptional, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class FiltroResumenDto {
+export class AnalyticsFilterDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(12)
-  mes?: number;
+  month?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(2000)
-  anio?: number;
+  year?: number;
 }

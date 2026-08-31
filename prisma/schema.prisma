@@ -6,43 +6,120 @@ datasource db {
   provider = "postgresql"
 }
 
-model Producto {
+enum Role {
+  SELLER
+  ADMIN
+}
+
+model User {
   id        String   @id @default(cuid())
-  nombre    String
-  precio    Float
+  name      String
+  email     String   @unique
+  role      Role     @default(SELLER)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  sales Sale[]
+
+  @@map("users")
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  price     Float
   stock     Int      @default(0)
-  categoria String
-  tamano    String
-  unidad    String
-  activo    Boolean  @default(true)
-  codigo    String?  @unique
+  size      String
+  unit      String
+  active    Boolean  @default(true)
+  code      String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  items     ItemVenta[]
 
-  @@map("productos")
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  saleItems       SaleItem[]
+  promotionItems  PromotionItem[]
+
+  @@map("products")
 }
 
-model Transaccion {
-  id          String   @id @default(cuid())
-  codigoVenta String   @unique
-  total       Float
-  fecha       DateTime @default(now())
-  createdAt   DateTime @default(now())
-  items       ItemVenta[]
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  products  Product[]
 
-  @@map("transacciones")
+  @@map("categories")
 }
 
-model ItemVenta {
-  id             String @id @default(cuid())
-  productoId     String
-  transaccionId  String
-  cantidad       Int
-  precioUnitario Float
-  subtotal       Float
-  producto       Producto    @relation(fields: [productoId], references: [id])
-  transaccion    Transaccion @relation(fields: [transaccionId], references: [id], onDelete: Cascade)
+model Sale {
+  id                  String     @id @default(cuid())
+  saleCode            String     @unique
+  total               Float
+  date                DateTime   @default(now())
+  createdAt           DateTime   @default(now())
+  cancelled           Boolean    @default(false)
+  cancellationReason  String?
+  cancelledAt         DateTime?
 
-  @@map("items_venta")
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  items       SaleItem[]
+  combos      SaleCombo[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String @id @default(cuid())
+  productId String
+  saleId    String
+  quantity  Int
+  unitPrice Float
+  subtotal  Float
+  product   Product @relation(fields: [productId], references: [id])
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("sale_items")
+}
+
+model Promotion {
+  id        String   @id @default(cuid())
+  name      String
+  price     Float
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  items      PromotionItem[]
+  saleCombos SaleCombo[]
+
+  @@map("promotions")
+}
+
+model PromotionItem {
+  id          String @id @default(cuid())
+  promotionId String
+  productId   String
+  quantity    Int
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@map("promotion_items")
+}
+
+model SaleCombo {
+  id          String @id @default(cuid())
+  saleId      String
+  promotionId String
+  quantity    Int
+  subtotal    Float
+
+  sale      Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  promotion Promotion @relation(fields: [promotionId], references: [id])
+
+  @@map("sale_combos")
 }
