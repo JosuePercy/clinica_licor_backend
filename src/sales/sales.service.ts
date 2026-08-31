@@ -1,6 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+
 import { SalesRepository } from './sales.repository';
 import { ProductsRepository } from '../products/products.repository';
+
 import type { CreateSaleDto } from './dto/create-sale.dto';
 
 @Injectable()
@@ -10,9 +16,31 @@ export class SalesService {
     private readonly productsRepository: ProductsRepository,
   ) {}
 
-  private parseLocalDate(dateString: string): Date {
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day);
+  private getLimaDateParts() {
+    const now = new Date();
+
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Lima',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    const parts = formatter.formatToParts(now);
+
+    const year = Number(parts.find((p) => p.type === 'year')?.value);
+    const month = Number(parts.find((p) => p.type === 'month')?.value);
+    const day = Number(parts.find((p) => p.type === 'day')?.value);
+
+    return {
+      year,
+      month,
+      day,
+    };
+  }
+
+  private parseLimaDate(dateString: string): Date {
+    return new Date(`${dateString}T00:00:00-05:00`);
   }
 
   async getSalesByPeriod(
@@ -20,45 +48,128 @@ export class SalesService {
     from?: string,
     to?: string,
   ) {
-    const now = new Date();
+    const limaToday = this.getLimaDateParts();
+
     let startDate: Date;
     let endDate: Date;
 
     switch (period) {
-      case 'week': {
-        const day = now.getDay();
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - day);
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(now);
-        endDate.setHours(23, 59, 59, 999);
+      case 'day': {
+        const dateString = `${limaToday.year}-${String(
+          limaToday.month,
+        ).padStart(2, '0')}-${String(limaToday.day).padStart(2, '0')}`;
+
+        startDate = this.parseLimaDate(dateString);
+
+        endDate = new Date(startDate);
+        endDate.setUTCDate(endDate.getUTCDate() + 1);
+        endDate.setTime(endDate.getTime() - 1);
+
         break;
       }
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        break;
-      case 'specific-date':
-        startDate = from
-          ? this.parseLocalDate(from)
-          : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      case 'week': {
+        const dateString = `${limaToday.year}-${String(
+          limaToday.month,
+        ).padStart(2, '0')}-${String(limaToday.day).padStart(2, '0')}`;
+
+        const limaDate = this.parseLimaDate(dateString);
+
+        // Domingo = 0
+        const dayOfWeek = limaDate.getUTCDay();
+
+        startDate = new Date(limaDate);
+        startDate.setUTCDate(startDate.getUTCDate() - dayOfWeek);
+
         endDate = new Date(startDate);
-        endDate.setHours(23, 59, 59, 999);
+        endDate.setUTCDate(endDate.getUTCDate() + 7);
+        endDate.setTime(endDate.getTime() - 1);
+
         break;
-      case 'range':
-        startDate = from
-          ? this.parseLocalDate(from)
-          : new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = to ? this.parseLocalDate(to) : new Date();
-        endDate.setHours(23, 59, 59, 999);
+      }
+
+      case 'month': {
+        const firstDay = `${limaToday.year}-${String(
+          limaToday.month,
+        ).padStart(2, '0')}-01`;
+
+        startDate = this.parseLimaDate(firstDay);
+
+        endDate = new Date(startDate);
+        endDate.setUTCMonth(endDate.getUTCMonth() + 1);
+        endDate.setTime(endDate.getTime() - 1);
+
         break;
-      default: // 'day'
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      }
+
+      case 'specific-date': {
+        const dateString =
+          from ??
+          `${limaToday.year}-${String(limaToday.month).padStart(
+            2,
+            '0',
+          )}-${String(limaToday.day).padStart(2, '0')}`;
+
+        startDate = this.parseLimaDate(dateString);
+
+        endDate = new Date(startDate);
+        endDate.setUTCDate(endDate.getUTCDate() + 1);
+        endDate.setTime(endDate.getTime() - 1);
+
+        break;
+      }
+
+      case 'range': {
+        const fromString =
+          from ??
+          `${limaToday.year}-${String(limaToday.month).padStart(
+            2,
+            '0',
+          )}-01`;
+
+        startDate = this.parseLimaDate(fromString);
+
+        if (to) {
+          endDate = this.parseLimaDate(to);
+
+          endDate.setUTCDate(endDate.getUTCDate() + 1);
+          endDate.setTime(endDate.getTime() - 1);
+        } else {
+          endDate = new Date();
+        }
+
+        break;
+      }
+
+      default: {
+        const dateString = `${limaToday.year}-${String(
+          limaToday.month,
+        ).padStart(2, '0')}-${String(limaToday.day).padStart(2, '0')}`;
+
+        startDate = this.parseLimaDate(dateString);
+
+        endDate = new Date(startDate);
+        endDate.setUTCDate(endDate.getUTCDate() + 1);
+        endDate.setTime(endDate.getTime() - 1);
+
+        break;
+      }
     }
 
-    const sales = await this.repository.findMany({ date: { gte: startDate, lte: endDate } });
-    return sales.map((s) => this.toResponse(s));
+    console.log('--- FILTRO DE VENTAS ---');
+    console.log('Periodo:', period);
+    console.log('Fecha Lima:', limaToday);
+    console.log('Desde UTC:', startDate.toISOString());
+    console.log('Hasta UTC:', endDate.toISOString());
+
+    const sales = await this.repository.findMany({
+      date: {
+        gte: startDate,
+        lte: endDate,
+      },
+    });
+
+    return sales.map((sale) => this.toResponse(sale));
   }
 
   async registerSale(data: CreateSaleDto) {
@@ -68,9 +179,13 @@ export class SalesService {
 
     for (const item of data.items) {
       const product = await this.productsRepository.findById(item.productId);
+
       if (!product) {
-        throw new NotFoundException(`Product ${item.productId} not found`);
+        throw new NotFoundException(
+          `Product ${item.productId} not found`,
+        );
       }
+
       if (product.stock < item.quantity) {
         throw new BadRequestException(
           `Insufficient stock for "${product.name}". Available: ${product.stock}, requested: ${item.quantity}`,
@@ -79,10 +194,12 @@ export class SalesService {
     }
 
     const saleCode = `VTA-${Date.now()}`;
+
     const total = data.items.reduce(
       (sum, item) => sum + item.quantity * item.unitPrice,
       0,
     );
+
     const date = data.date ? new Date(data.date) : new Date();
 
     const sale = await this.repository.create({
@@ -91,7 +208,11 @@ export class SalesService {
       date,
       items: {
         create: data.items.map((item) => ({
-          product: { connect: { id: item.productId } },
+          product: {
+            connect: {
+              id: item.productId,
+            },
+          },
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           subtotal: item.quantity * item.unitPrice,
@@ -100,7 +221,10 @@ export class SalesService {
     });
 
     for (const item of data.items) {
-      await this.repository.decrementStock(item.productId, item.quantity);
+      await this.repository.decrementStock(
+        item.productId,
+        item.quantity,
+      );
     }
 
     return this.toResponse(sale);
@@ -114,12 +238,14 @@ export class SalesService {
       date: sale.date,
       createdAt: sale.createdAt,
       cancelled: sale.cancelled,
+
       items: sale.items?.map((item: any) => ({
         id: item.id,
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
+
         product: item.product
           ? {
               id: item.product.id,
