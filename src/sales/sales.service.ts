@@ -8,6 +8,7 @@ import { SalesRepository } from './sales.repository';
 import { ProductsRepository } from '../products/products.repository';
 
 import type { CreateSaleDto } from './dto/create-sale.dto';
+import { getLimaPeriodRange } from 'src/common/filters/date-range.util';
 
 @Injectable()
 export class SalesService {
@@ -16,160 +17,22 @@ export class SalesService {
     private readonly productsRepository: ProductsRepository,
   ) {}
 
-  private getLimaDateParts() {
-    const now = new Date();
+  async getSalesByPeriod(period: string = 'day', from?: string, to?: string) {
+    const { startDate, endDate } = getLimaPeriodRange(period, from, to);
 
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Lima',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
+    const sales = await this.repository.findMany({ date: { gte: startDate, lte: endDate } });
 
-    const parts = formatter.formatToParts(now);
+    const total = sales
+      .filter((s) => !s.cancelled)
+      .reduce((sum, s) => sum + s.total, 0);
 
-    const year = Number(parts.find((p) => p.type === 'year')?.value);
-    const month = Number(parts.find((p) => p.type === 'month')?.value);
-    const day = Number(parts.find((p) => p.type === 'day')?.value);
+    const salesCount = sales.filter((s) => !s.cancelled).length;
 
     return {
-      year,
-      month,
-      day,
+      sales: sales.map((s) => this.toResponse(s)),
+      total,
+      salesCount,
     };
-  }
-
-  private parseLimaDate(dateString: string): Date {
-    return new Date(`${dateString}T00:00:00-05:00`);
-  }
-
-  async getSalesByPeriod(
-    period: string = 'day',
-    from?: string,
-    to?: string,
-  ) {
-    const limaToday = this.getLimaDateParts();
-
-    let startDate: Date;
-    let endDate: Date;
-
-    switch (period) {
-      case 'day': {
-        const dateString = `${limaToday.year}-${String(
-          limaToday.month,
-        ).padStart(2, '0')}-${String(limaToday.day).padStart(2, '0')}`;
-
-        startDate = this.parseLimaDate(dateString);
-
-        endDate = new Date(startDate);
-        endDate.setUTCDate(endDate.getUTCDate() + 1);
-        endDate.setTime(endDate.getTime() - 1);
-
-        break;
-      }
-
-      case 'week': {
-        const dateString = `${limaToday.year}-${String(
-          limaToday.month,
-        ).padStart(2, '0')}-${String(limaToday.day).padStart(2, '0')}`;
-
-        const limaDate = this.parseLimaDate(dateString);
-
-        // Domingo = 0
-        const dayOfWeek = limaDate.getUTCDay();
-
-        startDate = new Date(limaDate);
-        startDate.setUTCDate(startDate.getUTCDate() - dayOfWeek);
-
-        endDate = new Date(startDate);
-        endDate.setUTCDate(endDate.getUTCDate() + 7);
-        endDate.setTime(endDate.getTime() - 1);
-
-        break;
-      }
-
-      case 'month': {
-        const firstDay = `${limaToday.year}-${String(
-          limaToday.month,
-        ).padStart(2, '0')}-01`;
-
-        startDate = this.parseLimaDate(firstDay);
-
-        endDate = new Date(startDate);
-        endDate.setUTCMonth(endDate.getUTCMonth() + 1);
-        endDate.setTime(endDate.getTime() - 1);
-
-        break;
-      }
-
-      case 'specific-date': {
-        const dateString =
-          from ??
-          `${limaToday.year}-${String(limaToday.month).padStart(
-            2,
-            '0',
-          )}-${String(limaToday.day).padStart(2, '0')}`;
-
-        startDate = this.parseLimaDate(dateString);
-
-        endDate = new Date(startDate);
-        endDate.setUTCDate(endDate.getUTCDate() + 1);
-        endDate.setTime(endDate.getTime() - 1);
-
-        break;
-      }
-
-      case 'range': {
-        const fromString =
-          from ??
-          `${limaToday.year}-${String(limaToday.month).padStart(
-            2,
-            '0',
-          )}-01`;
-
-        startDate = this.parseLimaDate(fromString);
-
-        if (to) {
-          endDate = this.parseLimaDate(to);
-
-          endDate.setUTCDate(endDate.getUTCDate() + 1);
-          endDate.setTime(endDate.getTime() - 1);
-        } else {
-          endDate = new Date();
-        }
-
-        break;
-      }
-
-      default: {
-        const dateString = `${limaToday.year}-${String(
-          limaToday.month,
-        ).padStart(2, '0')}-${String(limaToday.day).padStart(2, '0')}`;
-
-        startDate = this.parseLimaDate(dateString);
-
-        endDate = new Date(startDate);
-        endDate.setUTCDate(endDate.getUTCDate() + 1);
-        endDate.setTime(endDate.getTime() - 1);
-
-        break;
-      }
-    }
-
-    console.log('--- FILTRO DE VENTAS ---');
-    console.log('Periodo:', period);
-    console.log('Fecha Lima:', limaToday);
-    console.log('Desde UTC:', startDate.toISOString());
-    console.log('Hasta UTC:', endDate.toISOString());
-
-    const sales = await this.repository.findMany({
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-    });
-
-    return sales.map((sale) => this.toResponse(sale));
   }
 
   async registerSale(data: CreateSaleDto) {
@@ -181,9 +44,7 @@ export class SalesService {
       const product = await this.productsRepository.findById(item.productId);
 
       if (!product) {
-        throw new NotFoundException(
-          `Product ${item.productId} not found`,
-        );
+        throw new NotFoundException(`Product ${item.productId} not found`);
       }
 
       if (product.stock < item.quantity) {
@@ -200,7 +61,7 @@ export class SalesService {
       0,
     );
 
-    const date = data.date ? new Date(data.date) : new Date();
+    const date = data.date ? new Date(`${data.date}T00:00:00-05:00`) : new Date();
 
     const sale = await this.repository.create({
       saleCode,
@@ -208,11 +69,7 @@ export class SalesService {
       date,
       items: {
         create: data.items.map((item) => ({
-          product: {
-            connect: {
-              id: item.productId,
-            },
-          },
+          product: { connect: { id: item.productId } },
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           subtotal: item.quantity * item.unitPrice,
@@ -221,13 +78,28 @@ export class SalesService {
     });
 
     for (const item of data.items) {
-      await this.repository.decrementStock(
-        item.productId,
-        item.quantity,
-      );
+      await this.repository.decrementStock(item.productId, item.quantity);
     }
 
     return this.toResponse(sale);
+  }
+
+  async cancelSale(id: string, reason?: string) {
+    const sale = await this.repository.findById(id);
+
+    if (!sale) {
+      throw new NotFoundException(`Sale ${id} not found`);
+    }
+    if (sale.cancelled) {
+      throw new BadRequestException(`Sale ${id} is already cancelled`);
+    }
+
+    for (const item of sale.items) {
+      await this.repository.incrementStock(item.productId, item.quantity);
+    }
+
+    const cancelled = await this.repository.cancel(id, reason);
+    return this.toResponse(cancelled);
   }
 
   private toResponse(sale: any) {
@@ -238,14 +110,14 @@ export class SalesService {
       date: sale.date,
       createdAt: sale.createdAt,
       cancelled: sale.cancelled,
-
+      cancellationReason: sale.cancellationReason,
+      cancelledAt: sale.cancelledAt,
       items: sale.items?.map((item: any) => ({
         id: item.id,
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         subtotal: item.subtotal,
-
         product: item.product
           ? {
               id: item.product.id,
