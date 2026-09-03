@@ -11,6 +11,11 @@ export class UpdateProductDto {
   price?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  costPrice?: number;
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   stock?: number;

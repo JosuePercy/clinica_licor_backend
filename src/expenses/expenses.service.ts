@@ -7,10 +7,15 @@ import { getLimaPeriodRange } from 'src/common/filters/date-range.util';
 export class ExpensesService {
   constructor(private readonly repository: ExpensesRepository) {}
 
-  async getByPeriod(period: string = 'month', from?: string, to?: string) {
-    const { startDate, endDate } = getLimaPeriodRange(period, from, to);
+  async getByPeriod(period?: string, from?: string, to?: string) {
+    const where = period
+      ? (() => {
+          const { startDate, endDate } = getLimaPeriodRange(period, from, to);
+          return { date: { gte: startDate, lte: endDate } };
+        })()
+      : {};
 
-    const expenses = await this.repository.findMany({ date: { gte: startDate, lte: endDate } });
+    const expenses = await this.repository.findMany(where);
     const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
     return { expenses, total };
