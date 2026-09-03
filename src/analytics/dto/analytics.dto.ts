@@ -15,3 +15,24 @@ export class AnalyticsFilterDto {
   @Min(2000)
   year?: number;
 }
+
+export class TopProductsFilterDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  month?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(2000)
+  year?: number;
+}

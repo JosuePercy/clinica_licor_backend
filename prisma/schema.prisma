@@ -11,6 +11,13 @@ enum Role {
   ADMIN
 }
 
+enum ExpenseCategory {
+  MERCHANDISE
+  SERVICES
+  SUPPLIES
+  OTHER
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -20,6 +27,8 @@ model User {
   createdAt DateTime @default(now())
 
   sales Sale[]
+  expenses Expense[]
+
 
   @@map("users")
 }
@@ -28,6 +37,7 @@ model Product {
   id        String   @id @default(cuid())
   name      String
   price     Float
+  costPrice Float    @default(0)
   stock     Int      @default(0)
   size      String
   unit      String
@@ -122,4 +132,18 @@ model SaleCombo {
   promotion Promotion @relation(fields: [promotionId], references: [id])
 
   @@map("sale_combos")
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  category    ExpenseCategory
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@map("expenses")
 }
