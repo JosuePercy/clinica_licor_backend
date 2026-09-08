@@ -21,13 +21,14 @@ export class ExpensesService {
     return { expenses, total };
   }
 
-  async create(data: CreateExpenseDto) {
+  async create(data: CreateExpenseDto, userId: string) {
     const date = data.date ? new Date(`${data.date}T00:00:00-05:00`) : new Date();
     return this.repository.create({
       description: data.description,
       amount: data.amount,
       category: data.category,
       date,
+      userId,
     });
   }
 

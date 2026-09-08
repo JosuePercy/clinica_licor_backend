@@ -35,7 +35,7 @@ export class SalesService {
     };
   }
 
-  async registerSale(data: CreateSaleDto) {
+  async registerSale(data: CreateSaleDto, userId: string) {
     if (!data.items.length) {
       throw new BadRequestException('Sale must have at least one item');
     }
@@ -67,6 +67,8 @@ export class SalesService {
       saleCode,
       total,
       date,
+      paymentMethod: data.paymentMethod,
+      userId,
       items: {
         create: data.items.map((item) => ({
           product: { connect: { id: item.productId } },
@@ -107,6 +109,7 @@ export class SalesService {
       id: sale.id,
       saleCode: sale.saleCode,
       total: sale.total,
+      paymentMethod: sale.paymentMethod,
       date: sale.date,
       createdAt: sale.createdAt,
       cancelled: sale.cancelled,

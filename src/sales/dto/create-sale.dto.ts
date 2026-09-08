@@ -1,6 +1,7 @@
-import { IsArray, ValidateNested, IsOptional, IsString } from 'class-validator';
+import { IsArray, ValidateNested, IsOptional, IsString, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SaleItemDto } from './sale-item.dto';
+import { PaymentMethod } from '@prisma/client';
 
 export class CreateSaleDto {
   @IsArray()
@@ -11,4 +12,8 @@ export class CreateSaleDto {
   @IsOptional()
   @IsString()
   date?: string;
+
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  paymentMethod?: PaymentMethod;
 }

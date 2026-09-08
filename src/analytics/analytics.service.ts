@@ -33,6 +33,11 @@ export class AnalyticsService {
 
     const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const costOfGoodsSold = sales.reduce(
+      (sum, sale) =>
+        sum + sale.items.reduce((itemSum, item) => itemSum + (item.product?.costPrice ?? 0) * item.quantity, 0),
+      0,
+    );
 
     const productMap = new Map<string, { product: any; quantitySold: number }>();
     for (const sale of sales) {
@@ -56,7 +61,8 @@ export class AnalyticsService {
     return {
       totalSales,
       totalExpenses,
-      profit: totalSales - totalExpenses,
+      costOfGoodsSold,
+      profit: totalSales - totalExpenses - costOfGoodsSold,
       topSellingProducts,
     };
   }

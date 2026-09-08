@@ -4,6 +4,7 @@ import type { UpdateProductDto } from './dto/update-product.dto';
 import { generateBarcode } from './utils/barcode.generator';
 import type { Product, Category } from '@prisma/client';
 import { ProductsRepository } from './products.repository';
+import { Role } from '../auth/role.enum';
 
 type ProductWithCategory = Product & { category: Category };
 
@@ -11,18 +12,19 @@ type ProductWithCategory = Product & { category: Category };
 export class ProductsService {
   constructor(private readonly repository: ProductsRepository) {}
 
-  private toResponse(p: ProductWithCategory) {
-    const { categoryId, category, ...rest } = p;
+  private toResponse(p: ProductWithCategory, role?: Role) {
+    const { categoryId, category, costPrice, ...rest } = p;
     return {
       ...rest,
+      ...(role !== Role.SELLER ? { costPrice } : {}),
       category: category?.name ?? null,
     };
   }
 
-  async findAll(filters: { code?: string; lowStock?: string; category?: string }) {
+  async findAll(filters: { code?: string; lowStock?: string; category?: string }, role?: Role) {
     if (filters.code) {
       const product = await this.repository.findByCode(filters.code);
-      return product ? [this.toResponse(product)] : [];
+      return product ? [this.toResponse(product, role)] : [];
     }
 
     const where: { active: boolean; stock?: { lte: number }; category?: { name: string } } = {
@@ -36,23 +38,23 @@ export class ProductsService {
     }
 
     const products = await this.repository.findMany(where, { name: 'asc' });
-    return products.map((p) => this.toResponse(p));
+    return products.map((p) => this.toResponse(p, role));
   }
 
-  async findByCode(code: string) {
+  async findByCode(code: string, role?: Role) {
     const product = await this.repository.findByCode(code);
     if (!product) {
       throw new NotFoundException(`Product with code ${code} not found`);
     }
-    return this.toResponse(product);
+    return this.toResponse(product, role);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, role?: Role) {
     const product = await this.repository.findById(id);
     if (!product) {
       throw new NotFoundException(`Product ${id} not found`);
     }
-    return this.toResponse(product);
+    return this.toResponse(product, role);
   }
 
   async create(data: CreateProductDto) {

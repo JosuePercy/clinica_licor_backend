@@ -1,8 +1,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsFilterDto, TopProductsFilterDto } from './dto/analytics.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/role.enum';
 
 @Controller('analytics')
+@Roles(Role.ADMIN)
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 

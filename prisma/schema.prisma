@@ -6,11 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  SELLER
-  ADMIN
-}
-
 enum ExpenseCategory {
   MERCHANDISE
   SERVICES
@@ -18,19 +13,10 @@ enum ExpenseCategory {
   OTHER
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  role      Role     @default(SELLER)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  sales Sale[]
-  expenses Expense[]
-
-
-  @@map("users")
+enum PaymentMethod {
+  CASH
+  YAPE_PLIN
+  CARD
 }
 
 model Product {
@@ -68,6 +54,7 @@ model Sale {
   id                  String     @id @default(cuid())
   saleCode            String     @unique
   total               Float
+  paymentMethod       PaymentMethod @default(CASH)
   date                DateTime   @default(now())
   createdAt           DateTime   @default(now())
   cancelled           Boolean    @default(false)
@@ -75,7 +62,6 @@ model Sale {
   cancelledAt         DateTime?
 
   userId String?
-  user   User?   @relation(fields: [userId], references: [id])
 
   items       SaleItem[]
   combos      SaleCombo[]
@@ -143,7 +129,6 @@ model Expense {
   createdAt   DateTime @default(now())
 
   userId String?
-  user   User?   @relation(fields: [userId], references: [id])
 
   @@map("expenses")
 }
