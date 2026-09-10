@@ -4,8 +4,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 
-import { SalesRepository } from './sales.repository';
+import { SalesRepository, type StockChange } from './sales.repository';
 import { ProductsRepository } from '../products/products.repository';
+import { PromotionsRepository } from '../promotions/promotions.repository';
 
 import type { CreateSaleDto } from './dto/create-sale.dto';
 import { getLimaPeriodRange } from 'src/common/filters/date-range.util';
@@ -15,12 +16,15 @@ export class SalesService {
   constructor(
     private readonly repository: SalesRepository,
     private readonly productsRepository: ProductsRepository,
+    private readonly promotionsRepository: PromotionsRepository,
   ) {}
 
   async getSalesByPeriod(period: string = 'day', from?: string, to?: string) {
     const { startDate, endDate } = getLimaPeriodRange(period, from, to);
 
-    const sales = await this.repository.findMany({ date: { gte: startDate, lte: endDate } });
+    const sales = await this.repository.findMany({
+      date: { gte: startDate, lte: endDate },
+    });
 
     const total = sales
       .filter((s) => !s.cancelled)
@@ -36,52 +40,123 @@ export class SalesService {
   }
 
   async registerSale(data: CreateSaleDto, userId: string) {
-    if (!data.items.length) {
-      throw new BadRequestException('Sale must have at least one item');
+    const items = data.items ?? [];
+    const combos = data.combos ?? [];
+
+    if (!items.length && !combos.length) {
+      throw new BadRequestException(
+        'Sale must have at least one item or combo',
+      );
     }
 
-    for (const item of data.items) {
-      const product = await this.productsRepository.findById(item.productId);
+    // Resolve every distinct promotion referenced by the combos up front.
+    const promotionsById = new Map<
+      string,
+      NonNullable<Awaited<ReturnType<PromotionsRepository['findById']>>>
+    >();
+    for (const combo of combos) {
+      if (promotionsById.has(combo.promotionId)) continue;
 
-      if (!product) {
-        throw new NotFoundException(`Product ${item.productId} not found`);
+      const promotion = await this.promotionsRepository.findById(
+        combo.promotionId,
+      );
+      if (!promotion) {
+        throw new NotFoundException(`Promotion ${combo.promotionId} not found`);
       }
-
-      if (product.stock < item.quantity) {
+      if (!promotion.active) {
         throw new BadRequestException(
-          `Insufficient stock for "${product.name}". Available: ${product.stock}, requested: ${item.quantity}`,
+          `Promotion "${promotion.name}" is not active`,
+        );
+      }
+      promotionsById.set(combo.promotionId, promotion);
+    }
+
+    // Aggregate the stock required per product across standalone items and
+    // every combo's member products, so the same product appearing twice
+    // (as a loose item and inside a combo, or in two combos) is validated
+    // and decremented against its real combined demand.
+    const requiredByProduct = new Map<string, number>();
+    for (const item of items) {
+      requiredByProduct.set(
+        item.productId,
+        (requiredByProduct.get(item.productId) ?? 0) + item.quantity,
+      );
+    }
+    for (const combo of combos) {
+      const promotion = promotionsById.get(combo.promotionId)!;
+      for (const promotionItem of promotion.items) {
+        const needed = promotionItem.quantity * combo.quantity;
+        requiredByProduct.set(
+          promotionItem.productId,
+          (requiredByProduct.get(promotionItem.productId) ?? 0) + needed,
         );
       }
     }
 
-    const saleCode = `VTA-${Date.now()}`;
+    const productIds = [...requiredByProduct.keys()];
+    const products = await this.productsRepository.findManyByIds(productIds);
+    const productsById = new Map(products.map((p) => [p.id, p]));
 
-    const total = data.items.reduce(
+    for (const [productId, quantity] of requiredByProduct) {
+      const product = productsById.get(productId);
+      if (!product) {
+        throw new NotFoundException(`Product ${productId} not found`);
+      }
+      if (product.stock < quantity) {
+        throw new BadRequestException(
+          `Insufficient stock for "${product.name}". Available: ${product.stock}, requested: ${quantity}`,
+        );
+      }
+    }
+
+    const itemsTotal = items.reduce(
       (sum, item) => sum + item.quantity * item.unitPrice,
       0,
     );
+    const combosTotal = combos.reduce((sum, combo) => {
+      const promotion = promotionsById.get(combo.promotionId)!;
+      return sum + promotion.price * combo.quantity;
+    }, 0);
+    const total = itemsTotal + combosTotal;
 
-    const date = data.date ? new Date(`${data.date}T00:00:00-05:00`) : new Date();
+    const saleCode = `VTA-${Date.now()}`;
+    const date = data.date
+      ? new Date(`${data.date}T00:00:00-05:00`)
+      : new Date();
 
-    const sale = await this.repository.create({
-      saleCode,
-      total,
-      date,
-      paymentMethod: data.paymentMethod,
-      userId,
-      items: {
-        create: data.items.map((item) => ({
-          product: { connect: { id: item.productId } },
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          subtotal: item.quantity * item.unitPrice,
-        })),
+    const stockChanges: StockChange[] = [...requiredByProduct.entries()].map(
+      ([productId, quantity]) => ({
+        productId,
+        quantity,
+      }),
+    );
+
+    const sale = await this.repository.createWithStockChanges(
+      {
+        saleCode,
+        total,
+        date,
+        paymentMethod: data.paymentMethod,
+        userId,
+        items: {
+          create: items.map((item) => ({
+            product: { connect: { id: item.productId } },
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            subtotal: item.quantity * item.unitPrice,
+          })),
+        },
+        combos: {
+          create: combos.map((combo) => ({
+            promotion: { connect: { id: combo.promotionId } },
+            quantity: combo.quantity,
+            subtotal:
+              promotionsById.get(combo.promotionId)!.price * combo.quantity,
+          })),
+        },
       },
-    });
-
-    for (const item of data.items) {
-      await this.repository.decrementStock(item.productId, item.quantity);
-    }
+      stockChanges,
+    );
 
     return this.toResponse(sale);
   }
@@ -96,11 +171,35 @@ export class SalesService {
       throw new BadRequestException(`Sale ${id} is already cancelled`);
     }
 
+    const restoreByProduct = new Map<string, number>();
     for (const item of sale.items) {
-      await this.repository.incrementStock(item.productId, item.quantity);
+      restoreByProduct.set(
+        item.productId,
+        (restoreByProduct.get(item.productId) ?? 0) + item.quantity,
+      );
+    }
+    for (const combo of sale.combos) {
+      for (const promotionItem of combo.promotion.items) {
+        const quantity = promotionItem.quantity * combo.quantity;
+        restoreByProduct.set(
+          promotionItem.productId,
+          (restoreByProduct.get(promotionItem.productId) ?? 0) + quantity,
+        );
+      }
     }
 
-    const cancelled = await this.repository.cancel(id, reason);
+    const stockChanges: StockChange[] = [...restoreByProduct.entries()].map(
+      ([productId, quantity]) => ({
+        productId,
+        quantity,
+      }),
+    );
+
+    const cancelled = await this.repository.cancelWithStockRestore(
+      id,
+      reason,
+      stockChanges,
+    );
     return this.toResponse(cancelled);
   }
 
@@ -126,6 +225,19 @@ export class SalesService {
               id: item.product.id,
               name: item.product.name,
               price: item.product.price,
+            }
+          : undefined,
+      })),
+      combos: sale.combos?.map((combo: any) => ({
+        id: combo.id,
+        promotionId: combo.promotionId,
+        quantity: combo.quantity,
+        subtotal: combo.subtotal,
+        promotion: combo.promotion
+          ? {
+              id: combo.promotion.id,
+              name: combo.promotion.name,
+              price: combo.promotion.price,
             }
           : undefined,
       })),

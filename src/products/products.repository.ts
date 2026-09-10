@@ -55,6 +55,10 @@ export class ProductsRepository {
     });
   }
 
+  async findManyByIds(ids: string[]) {
+    return this.prisma.product.findMany({ where: { id: { in: ids } } });
+  }
+
   async findCategoryByName(name: string) {
     return this.prisma.category.findUnique({ where: { name } });
   }

@@ -35,13 +35,14 @@ export class ClerkAuthGuard implements CanActivate {
       throw new UnauthorizedException('CLERK_SECRET_KEY is not configured on the server');
     }
 
-    const { data, errors } = await verifyToken(token, { secretKey });
-
-    if (errors || !data) {
+    let payload: Record<string, unknown>;
+    try {
+      payload = (await verifyToken(token, { secretKey })) as Record<string, unknown>;
+    } catch (error) {
+      console.error('[ClerkAuthGuard] verifyToken failed:', error);
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    const payload = data as Record<string, unknown>;
     const role = payload.role;
     if (role !== Role.ADMIN && role !== Role.SELLER) {
       throw new UnauthorizedException(
