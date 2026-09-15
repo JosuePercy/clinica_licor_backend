@@ -4,7 +4,7 @@ import { ExpensesRepository } from '../expenses/expenses.repository';
 import {
   getLimaPeriodRange,
   formatLimaDateKey,
-} from 'src/common/filters/date-range.util';
+} from '../common/filters/date-range.util';
 
 @Injectable()
 export class AnalyticsService {

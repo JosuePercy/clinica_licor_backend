@@ -9,7 +9,7 @@ import { ProductsRepository } from '../products/products.repository';
 import { PromotionsRepository } from '../promotions/promotions.repository';
 
 import type { CreateSaleDto } from './dto/create-sale.dto';
-import { getLimaPeriodRange } from 'src/common/filters/date-range.util';
+import { getLimaPeriodRange } from '../common/filters/date-range.util';
 
 @Injectable()
 export class SalesService {
