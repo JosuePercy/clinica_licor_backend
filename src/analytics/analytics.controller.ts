@@ -11,7 +11,13 @@ export class AnalyticsController {
 
   @Get('summary')
   getSummary(@Query() filters: AnalyticsFilterDto) {
-    return this.analyticsService.getMonthlySummary(filters.month, filters.year);
+    return this.analyticsService.getMonthlySummary(
+      filters.period,
+      filters.from,
+      filters.to,
+      filters.year,
+      filters.month,
+    );
   }
 
   @Get('top-product')
@@ -21,16 +27,35 @@ export class AnalyticsController {
 
   @Get('daily-sales')
   getDailySales(@Query() filters: AnalyticsFilterDto) {
-    return this.analyticsService.getDailySales(filters.month, filters.year);
+    return this.analyticsService.getDailySales(
+      filters.period,
+      filters.from,
+      filters.to,
+      filters.year,
+      filters.month,
+    );
   }
 
   @Get('top-products')
   getTopProducts(@Query() filters: TopProductsFilterDto) {
-    return this.analyticsService.getTopProducts(filters.limit, filters.month, filters.year);
+    return this.analyticsService.getTopProducts(
+      filters.limit,
+      filters.period,
+      filters.from,
+      filters.to,
+      filters.year,
+      filters.month,
+    );
   }
 
   @Get('expenses-by-category')
   getExpensesByCategory(@Query() filters: AnalyticsFilterDto) {
-    return this.analyticsService.getExpensesByCategory(filters.month, filters.year);
+    return this.analyticsService.getExpensesByCategory(
+      filters.period,
+      filters.from,
+      filters.to,
+      filters.year,
+      filters.month,
+    );
   }
 }

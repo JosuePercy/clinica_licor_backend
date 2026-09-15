@@ -1,38 +1,32 @@
-import { IsInt, IsOptional, Min, Max } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AnalyticsFilterDto {
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(12)
-  month?: number;
+  @IsString()
+  period?: 'day' | 'week' | 'month' | 'year' | 'specific-date' | 'range';
 
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(2000)
-  year?: number;
+  @IsString()
+  from?: string;
+
+  @IsOptional()
+  @IsString()
+  to?: string;
+
+  @IsOptional()
+  @IsString()
+  year?: string;
+
+  @IsOptional()
+  @IsString()
+  month?: string;
 }
 
-export class TopProductsFilterDto {
+export class TopProductsFilterDto extends AnalyticsFilterDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   limit?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(12)
-  month?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(2000)
-  year?: number;
 }

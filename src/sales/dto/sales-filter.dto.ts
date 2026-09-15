@@ -3,7 +3,7 @@ import { IsOptional, IsString } from 'class-validator';
 export class SalesFilterDto {
   @IsOptional()
   @IsString()
-  period?: 'day' | 'week' | 'month' | 'specific-date' | 'range';
+  period?: 'day' | 'week' | 'month' | 'year' | 'specific-date' | 'range';
 
   @IsOptional()
   @IsString()
@@ -12,4 +12,8 @@ export class SalesFilterDto {
   @IsOptional()
   @IsString()
   to?: string;
+
+  @IsOptional()
+  @IsString()
+  year?: string;
 }

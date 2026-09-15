@@ -6,13 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ExpenseCategory {
-  MERCHANDISE
-  SERVICES
-  SUPPLIES
-  OTHER
-}
-
 enum PaymentMethod {
   CASH
   YAPE_PLIN
@@ -124,11 +117,22 @@ model Expense {
   id          String   @id @default(cuid())
   description String
   amount      Float
-  category    ExpenseCategory
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
 
   userId String?
 
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id])
+
   @@map("expenses")
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  expenses  Expense[]
+
+  @@map("expense_categories")
 }

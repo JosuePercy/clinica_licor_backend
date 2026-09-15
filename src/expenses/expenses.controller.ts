@@ -13,7 +13,10 @@ import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { ExpensesFilterDto } from './dto/expenses-filter.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser, type CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
 import { Role } from '../auth/role.enum';
 
 @Controller('expenses')
@@ -23,12 +26,19 @@ export class ExpensesController {
 
   @Get()
   findAll(@Query() filters: ExpensesFilterDto) {
-    return this.expensesService.getByPeriod(filters.period, filters.from, filters.to);
+    return this.expensesService.getByPeriod(
+      filters.period,
+      filters.from,
+      filters.to,
+    );
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() body: CreateExpenseDto, @CurrentUser() currentUser: CurrentUserPayload) {
+  create(
+    @Body() body: CreateExpenseDto,
+    @CurrentUser() currentUser: CurrentUserPayload,
+  ) {
     return this.expensesService.create(body, currentUser.id);
   }
 

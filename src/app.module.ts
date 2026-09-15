@@ -6,6 +6,7 @@ import { SalesModule } from './sales/sales.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { CategoriesModule } from './categories/categories.module';
+import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { ClerkAuthGuard } from './auth/guards/clerk-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -18,6 +19,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     AnalyticsModule,
     ExpensesModule,
     CategoriesModule,
+    ExpenseCategoriesModule,
     PromotionsModule,
   ],
   providers: [

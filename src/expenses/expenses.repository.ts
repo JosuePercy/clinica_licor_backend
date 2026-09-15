@@ -10,11 +10,12 @@ export class ExpensesRepository {
     return this.prisma.expense.findMany({
       where,
       orderBy: { date: 'desc' },
+      include: { category: true },
     });
   }
 
   async create(data: Prisma.ExpenseCreateInput) {
-    return this.prisma.expense.create({ data });
+    return this.prisma.expense.create({ data, include: { category: true } });
   }
 
   async findById(id: string) {
@@ -23,5 +24,9 @@ export class ExpensesRepository {
 
   async delete(id: string) {
     return this.prisma.expense.delete({ where: { id } });
+  }
+
+  async findCategoryByName(name: string) {
+    return this.prisma.expenseCategory.findUnique({ where: { name } });
   }
 }

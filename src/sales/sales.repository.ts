@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
 
 const saleInclude = {
-  items: { include: { product: true } },
+  items: { include: { product: { include: { category: true } } } },
   combos: {
     include: {
       promotion: { include: { items: { include: { product: true } } } },
