@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ExpensesRepository } from './expenses.repository';
 import type { CreateExpenseDto } from './dto/create-expense.dto';
-import { getLimaPeriodRange } from 'src/common/filters/date-range.util';
+import { getLimaPeriodRange } from '../common/filters/date-range.util';
 
 @Injectable()
 export class ExpensesService {
