@@ -19,8 +19,13 @@ export class SalesService {
     private readonly promotionsRepository: PromotionsRepository,
   ) {}
 
-  async getSalesByPeriod(period: string = 'day', from?: string, to?: string) {
-    const { startDate, endDate } = getLimaPeriodRange(period, from, to);
+  async getSalesByPeriod(
+    period: string = 'day',
+    from?: string,
+    to?: string,
+    year?: string,
+  ) {
+    const { startDate, endDate } = getLimaPeriodRange(period, from, to, year);
 
     const sales = await this.repository.findMany({
       date: { gte: startDate, lte: endDate },
@@ -225,6 +230,8 @@ export class SalesService {
               id: item.product.id,
               name: item.product.name,
               price: item.product.price,
+              size: item.product.size,
+              category: item.product.category?.name ?? null,
             }
           : undefined,
       })),

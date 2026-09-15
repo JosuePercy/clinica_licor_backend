@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { AnalyticsRepository } from './analytics.repository';
 import { ExpensesRepository } from '../expenses/expenses.repository';
+import {
+  getLimaPeriodRange,
+  formatLimaDateKey,
+} from 'src/common/filters/date-range.util';
 
 @Injectable()
 export class AnalyticsService {
@@ -9,37 +13,53 @@ export class AnalyticsService {
     private readonly expensesRepository: ExpensesRepository,
   ) {}
 
-  private getMonthRange(month?: number, year?: number): { start: Date; end: Date } {
-    const now = new Date();
-    const m = month ?? now.getMonth() + 1;
-    const y = year ?? now.getFullYear();
-    const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
-    const end = new Date(y, m, 0, 23, 59, 59, 999);
-    return { start, end };
-  }
-
   private toProductResponse(p: any) {
     if (!p) return null;
     return { id: p.id, name: p.name, price: p.price };
   }
 
-  async getMonthlySummary(month?: number, year?: number) {
-    const { start, end } = this.getMonthRange(month, year);
+  async getMonthlySummary(
+    period?: string,
+    from?: string,
+    to?: string,
+    year?: string,
+    month?: string,
+  ) {
+    const { startDate, endDate } = getLimaPeriodRange(
+      period ?? 'month',
+      from,
+      to,
+      year,
+      month,
+    );
 
     const [sales, expenses] = await Promise.all([
-      this.repository.findSales({ date: { gte: start, lte: end }, cancelled: false }),
-      this.expensesRepository.findMany({ date: { gte: start, lte: end } }),
+      this.repository.findSales({
+        date: { gte: startDate, lte: endDate },
+        cancelled: false,
+      }),
+      this.expensesRepository.findMany({
+        date: { gte: startDate, lte: endDate },
+      }),
     ]);
 
     const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const costOfGoodsSold = sales.reduce(
       (sum, sale) =>
-        sum + sale.items.reduce((itemSum, item) => itemSum + (item.product?.costPrice ?? 0) * item.quantity, 0),
+        sum +
+        sale.items.reduce(
+          (itemSum, item) =>
+            itemSum + (item.product?.costPrice ?? 0) * item.quantity,
+          0,
+        ),
       0,
     );
 
-    const productMap = new Map<string, { product: any; quantitySold: number }>();
+    const productMap = new Map<
+      string,
+      { product: any; quantitySold: number }
+    >();
     for (const sale of sales) {
       for (const item of sale.items) {
         const existing = productMap.get(item.productId);
@@ -71,11 +91,16 @@ export class AnalyticsService {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const items = await this.repository.findSaleItems({ sale: { date: { gte: start }, cancelled: false } });
+    const items = await this.repository.findSaleItems({
+      sale: { date: { gte: start }, cancelled: false },
+    });
 
     if (!items.length) return null;
 
-    const productMap = new Map<string, { product: any; quantitySold: number }>();
+    const productMap = new Map<
+      string,
+      { product: any; quantitySold: number }
+    >();
     for (const item of items) {
       const existing = productMap.get(item.productId);
       if (existing) {
@@ -88,44 +113,84 @@ export class AnalyticsService {
       }
     }
 
-    return [...productMap.values()].sort((a, b) => b.quantitySold - a.quantitySold)[0] ?? null;
+    return (
+      [...productMap.values()].sort(
+        (a, b) => b.quantitySold - a.quantitySold,
+      )[0] ?? null
+    );
   }
 
-  async getDailySales(month?: number, year?: number) {
-    const { start, end } = this.getMonthRange(month, year);
-    const { sales, expenses } = await this.repository.findSalesAndExpensesInRange(start, end);
+  async getDailySales(
+    period?: string,
+    from?: string,
+    to?: string,
+    year?: string,
+    month?: string,
+  ) {
+    const { startDate, endDate } = getLimaPeriodRange(
+      period ?? 'month',
+      from,
+      to,
+      year,
+      month,
+    );
+    const { sales, expenses } =
+      await this.repository.findSalesAndExpensesInRange(startDate, endDate);
 
-    const daysInMonth = end.getDate();
-    const salesByDay = new Map<number, number>();
-    const expensesByDay = new Map<number, number>();
-
+    const salesByDate = new Map<string, number>();
     for (const sale of sales) {
-      const day = new Date(sale.date).getDate();
-      salesByDay.set(day, (salesByDay.get(day) ?? 0) + sale.total);
+      const key = formatLimaDateKey(new Date(sale.date));
+      salesByDate.set(key, (salesByDate.get(key) ?? 0) + sale.total);
     }
 
+    const expensesByDate = new Map<string, number>();
     for (const expense of expenses) {
-      const day = new Date(expense.date).getDate();
-      expensesByDay.set(day, (expensesByDay.get(day) ?? 0) + expense.amount);
+      const key = formatLimaDateKey(new Date(expense.date));
+      expensesByDate.set(key, (expensesByDate.get(key) ?? 0) + expense.amount);
     }
 
-    const data = Array.from({ length: daysInMonth }, (_, i) => {
-      const day = i + 1;
-      return {
-        day,
-        sales: salesByDay.get(day) ?? 0,
-        expenses: expensesByDay.get(day) ?? 0,
-      };
-    });
+    // Walks the actual [startDate, endDate] span instead of a hardcoded
+    // calendar month, so the chart also works for week/range/year periods.
+    const data: {
+      date: string;
+      label: string;
+      sales: number;
+      expenses: number;
+    }[] = [];
+    const cursor = new Date(startDate);
+    while (cursor.getTime() <= endDate.getTime()) {
+      const key = formatLimaDateKey(cursor);
+      const [, monthPart, dayPart] = key.split('-');
+      data.push({
+        date: key,
+        label: `${dayPart}/${monthPart}`,
+        sales: salesByDate.get(key) ?? 0,
+        expenses: expensesByDate.get(key) ?? 0,
+      });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
 
     return { data };
   }
 
-  async getTopProducts(limit: number = 5, month?: number, year?: number) {
-    const { start, end } = this.getMonthRange(month, year);
+  async getTopProducts(
+    limit: number = 5,
+    period?: string,
+    from?: string,
+    to?: string,
+    year?: string,
+    month?: string,
+  ) {
+    const { startDate, endDate } = getLimaPeriodRange(
+      period ?? 'month',
+      from,
+      to,
+      year,
+      month,
+    );
 
     const items = await this.repository.findSaleItems({
-      sale: { date: { gte: start, lte: end }, cancelled: false },
+      sale: { date: { gte: startDate, lte: endDate }, cancelled: false },
     });
 
     const productMap = new Map<
@@ -156,14 +221,32 @@ export class AnalyticsService {
     return { topProducts };
   }
 
-  async getExpensesByCategory(month?: number, year?: number) {
-    const { start, end } = this.getMonthRange(month, year);
+  async getExpensesByCategory(
+    period?: string,
+    from?: string,
+    to?: string,
+    year?: string,
+    month?: string,
+  ) {
+    const { startDate, endDate } = getLimaPeriodRange(
+      period ?? 'month',
+      from,
+      to,
+      year,
+      month,
+    );
 
-    const expenses = await this.expensesRepository.findMany({ date: { gte: start, lte: end } });
+    const expenses = await this.expensesRepository.findMany({
+      date: { gte: startDate, lte: endDate },
+    });
 
     const categoryMap = new Map<string, number>();
     for (const expense of expenses) {
-      categoryMap.set(expense.category, (categoryMap.get(expense.category) ?? 0) + expense.amount);
+      const categoryName = expense.category.name;
+      categoryMap.set(
+        categoryName,
+        (categoryMap.get(categoryName) ?? 0) + expense.amount,
+      );
     }
 
     const total = [...categoryMap.values()].reduce((sum, v) => sum + v, 0);

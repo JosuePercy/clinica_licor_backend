@@ -24,7 +24,18 @@ export class AnalyticsRepository {
     const [sales, expenses] = await this.prisma.$transaction([
       this.prisma.sale.findMany({
         where: { date: { gte: start, lte: end }, cancelled: false },
-        select: { date: true, total: true, items: { select: { productId: true, quantity: true, unitPrice: true, product: { select: { id: true, name: true } } } } },
+        select: {
+          date: true,
+          total: true,
+          items: {
+            select: {
+              productId: true,
+              quantity: true,
+              unitPrice: true,
+              product: { select: { id: true, name: true } },
+            },
+          },
+        },
       }),
       this.prisma.expense.findMany({
         where: { date: { gte: start, lte: end } },

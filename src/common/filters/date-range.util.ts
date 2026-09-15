@@ -21,6 +21,17 @@ export function parseLimaDate(dateString: string): Date {
   return new Date(`${dateString}T00:00:00${LIMA_OFFSET}`);
 }
 
+const limaDateKeyFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Lima',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+export function formatLimaDateKey(date: Date): string {
+  return limaDateKeyFormatter.format(date);
+}
+
 function pad(n: number): string {
   return String(n).padStart(2, '0');
 }
@@ -29,15 +40,23 @@ export function getLimaPeriodRange(
   period: string,
   from?: string,
   to?: string,
+  year?: string,
+  month?: string,
 ): { startDate: Date; endDate: Date } {
-  const { year, month, day } = getLimaDateParts();
-  const todayStr = `${year}-${pad(month)}-${pad(day)}`;
+  const { year: currentYear, month: currentMonth, day } = getLimaDateParts();
+  const todayStr = `${currentYear}-${pad(currentMonth)}-${pad(day)}`;
   const today = parseLimaDate(todayStr);
 
   let startDate: Date;
   let endDate: Date;
 
   switch (period) {
+    case 'year': {
+      const targetYear = year ? Number(year) : currentYear;
+      startDate = parseLimaDate(`${targetYear}-01-01`);
+      endDate = new Date(`${targetYear}-12-31T23:59:59${LIMA_OFFSET}`);
+      break;
+    }
     case 'week': {
       const dayOfWeek = today.getUTCDay();
       startDate = new Date(today);
@@ -48,10 +67,14 @@ export function getLimaPeriodRange(
       break;
     }
     case 'month': {
-      const startStr = `${year}-${pad(month)}-01`;
+      const targetYear = year ? Number(year) : currentYear;
+      const targetMonth = month ? Number(month) : currentMonth;
+      const startStr = `${targetYear}-${pad(targetMonth)}-01`;
       startDate = parseLimaDate(startStr);
-      const lastDay = new Date(year, month, 0).getDate();
-      endDate = new Date(`${year}-${pad(month)}-${pad(lastDay)}T23:59:59${LIMA_OFFSET}`);
+      const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+      endDate = new Date(
+        `${targetYear}-${pad(targetMonth)}-${pad(lastDay)}T23:59:59${LIMA_OFFSET}`,
+      );
       break;
     }
     case 'specific-date':
@@ -60,7 +83,9 @@ export function getLimaPeriodRange(
       endDate.setUTCHours(23, 59, 59, 999);
       break;
     case 'range':
-      startDate = from ? parseLimaDate(from) : parseLimaDate(`${year}-${pad(month)}-01`);
+      startDate = from
+        ? parseLimaDate(from)
+        : parseLimaDate(`${currentYear}-${pad(currentMonth)}-01`);
       endDate = to ? new Date(`${to}T23:59:59${LIMA_OFFSET}`) : new Date();
       break;
     default: // 'day'

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ExpensesRepository } from './expenses.repository';
 import type { CreateExpenseDto } from './dto/create-expense.dto';
 import { getLimaPeriodRange } from 'src/common/filters/date-range.util';
@@ -6,6 +10,11 @@ import { getLimaPeriodRange } from 'src/common/filters/date-range.util';
 @Injectable()
 export class ExpensesService {
   constructor(private readonly repository: ExpensesRepository) {}
+
+  private toResponse(e: any) {
+    const { categoryId, category, ...rest } = e;
+    return { ...rest, category: category?.name ?? null };
+  }
 
   async getByPeriod(period?: string, from?: string, to?: string) {
     const where = period
@@ -18,18 +27,28 @@ export class ExpensesService {
     const expenses = await this.repository.findMany(where);
     const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-    return { expenses, total };
+    return { expenses: expenses.map((e) => this.toResponse(e)), total };
   }
 
   async create(data: CreateExpenseDto, userId: string) {
-    const date = data.date ? new Date(`${data.date}T00:00:00-05:00`) : new Date();
-    return this.repository.create({
+    const category = await this.repository.findCategoryByName(data.category);
+    if (!category) {
+      throw new BadRequestException(
+        `Expense category "${data.category}" does not exist`,
+      );
+    }
+
+    const date = data.date
+      ? new Date(`${data.date}T00:00:00-05:00`)
+      : new Date();
+    const expense = await this.repository.create({
       description: data.description,
       amount: data.amount,
-      category: data.category,
+      category: { connect: { id: category.id } },
       date,
       userId,
     });
+    return this.toResponse(expense);
   }
 
   async remove(id: string) {
